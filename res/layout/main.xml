@@ -1,0 +1,46 @@
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/relativeLayout1"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" >
+
+        <Gallery
+            android:id="@+id/wpgallery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/gradient_selector"
+            android:minHeight="320dp"
+            android:minWidth="320dp" />
+
+        <LinearLayout
+            android:id="@+id/linearLayout1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true" >
+
+            <Button
+                android:id="@+id/btnapply"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Set Wallpaper" />
+
+            <Button
+                android:id="@+id/btnhelp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Help" />
+
+        </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/chkdither"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/wpgallery"
+            android:layout_alignParentLeft="true"
+            android:text="Dither to 16bit" />
+
+    </RelativeLayout>
