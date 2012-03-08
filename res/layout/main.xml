@@ -39,8 +39,8 @@
             android:id="@+id/chkdither"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignBottom="@+id/wpgallery"
             android:layout_alignParentLeft="true"
+            android:layout_below="@+id/wpgallery"
             android:text="Dither to 16bit" />
 
     </RelativeLayout>

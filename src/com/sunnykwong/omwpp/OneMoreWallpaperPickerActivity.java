@@ -2,6 +2,7 @@ package com.sunnykwong.omwpp;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -45,10 +47,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         getWindow().setWindowAnimations(android.R.style.Animation_Toast);
         
         SDROOT = this.getExternalFilesDir(null);
-        System.out.println(SDROOT);
-        System.out.println(SDROOT.getPath());
         SDROOT.mkdirs();
-//        File f = new File(SDROOT,"test");
 
 		setResult(Activity.RESULT_CANCELED);
 
@@ -64,17 +63,19 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         }
 
         setContentView(R.layout.main);
+        
         gallery = (Gallery)findViewById(R.id.wpgallery);
         WPPickerAdapter adapter = new WPPickerAdapter();
-        gallery.setAdapter(adapter);
-        gallery.setSelection(0);
-
         //Load all wallpapers in dir into picker.
-        int counter=0;
+//        int counter=0;
         for (File f : SDROOT.listFiles()) {
+        	System.out.println(f.getName());
         	adapter.addItem(f);
         }
         
+        gallery.setAdapter(adapter);
+        gallery.setSelection(0);
+
         btnApply = (Button)findViewById(R.id.btnapply);
         btnHelp = (Button)findViewById(R.id.btnhelp);
     }        
@@ -95,7 +96,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
     	public ArrayList<File> mFiles = new ArrayList<File>();
     	public HashMap<String, Integer> mNames = new HashMap<String, Integer>();
-    	
+    	public ArrayList<Bitmap> mPreviews = new ArrayList<Bitmap>();
 
         public WPPickerAdapter() {
         	
@@ -103,6 +104,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
         public int addItem(final File f){
         	mNames.put(f.getName(), mFiles.size());
+        	mPreviews.add(Bitmap.createScaledBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()),320,200,true));
         	mFiles.add(f);
         	return mFiles.size();
         }
@@ -150,8 +152,9 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         	File f = mFiles.get(position);
         	LinearLayout ll = (LinearLayout)((LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.preview, null);
         	((TextView)ll.findViewById(R.id.wpfilename)).setText(f.getName());
-        	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
 
+        	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(mPreviews.get(position));
+        	ll.requestLayout();
         	//        	BitmapFactory.Options bo = new BitmapFactory.Options();
 //        	bo.inDither=true;
 //        	bo.inPreferredConfig = Bitmap.Config.ARGB_4444;
