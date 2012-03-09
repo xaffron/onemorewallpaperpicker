@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/menuforcedownload"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_gallery"
+        android:title="Force Download Wallpapers"
+        android:visible="true">
+    </item>
+    <item
+        android:id="@+id/menudownloadstatus"
+        android:icon="@android:drawable/ic_menu_sort_alphabetically"
+        android:title="Show Download Status">
+    </item>
+    <item
+        android:id="@+id/menuaddcustompaths"
+        android:icon="@android:drawable/ic_menu_edit"
+        showAsAction="ifRoom"
+        android:title="Add Custom Paths">
+    </item>
+    <item
+        android:id="@+id/menucredits"
+        android:icon="@android:drawable/ic_menu_help"
+        android:title="Version &amp; Credits">
+    </item>
+
+</menu>

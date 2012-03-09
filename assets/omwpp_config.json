@@ -1,0 +1,104 @@
+{
+    "lastupdateepoch":"1331308897000",
+    "mirrors": [
+        "mirror.pnl.gov/ubuntu/",
+        "mirror.anl.gov/pub/ubuntu/",
+        "mirrors.us.kernel.org/ubuntu/",
+        "www.gtlib.gatech.edu/pub/ubuntu/",
+        "www.club.cc.cmu.edu/pub/ubuntu/",
+        "ubuntu.wikimedia.org/ubuntu/",
+        "ubuntu.wallawalla.edu/ubuntu/",
+        "ubuntu.secsup.org/",
+		"ubuntu.mirrors.tds.net/pub/ubuntu/",
+        "ubuntu.mirrors.pair.com/archive/",
+		"ubuntu.mirror.iweb.ca/",
+		"ubuntu.media.mit.edu/ubuntu/",
+        "ubuntu.arcticnetwork.ca/",
+		"mirrors.xmission.com/ubuntu/",
+        "mirrors.rit.edu/ubuntu/",
+        "mirrors.login.com/ubuntu/",
+        "mirrors.ecvps.com/ubuntu/",
+        "mirrors.easynews.com/linux/ubuntu/",
+        "mirrors.ccs.neu.edu/ubuntu/",
+        "mirrors.cat.pdx.edu/ubuntu/",
+        "ubuntu.mirror.cambrium.nl/ubuntu/",
+        "se.archive.ubuntu.com/ubuntu",
+        "ie.archive.ubuntu.com/ubuntu",
+        "ftp.halifax.rwth-aachen.de/ubuntu/",
+        "de.archive.ubuntu.com/ubuntu",
+        "ch.archive.ubuntu.com/ubuntu",
+        "www.mirrorservice.org/sites/archive.ubuntu.com/ubuntu/",
+        "ubuntuarchive.eweka.nl/ubuntu/",
+        "ubuntu.ynet.sk/ubuntu/",
+        "ubuntu.linux-bg.org/ubuntu/",
+        "ubuntu.ipacct.com/ubuntu/",
+        "ubuntu.intergenia.de/ubuntu/",
+        "ubuntu.hitsol.net/ubuntu/",
+        "ubuntu.cheng.auth.gr/ubuntu/",
+        "nl.archive.ubuntu.com/ubuntu",
+        "mirror.ovh.net/ubuntu/",
+        "mirror.netcologne.de/ubuntu/",
+        "mirror.liteserver.nl/pub/ubuntu/",
+        "mirror.leaseweb.com/ubuntu/",
+        "mirror.informatik.uni-mannheim.de/pub/linux/distributions/ubuntu/",
+        "au.archive.ubuntu.com/ubuntu",
+        "ucmirror.canterbury.ac.nz/ubuntu/",
+        "nz.archive.ubuntu.com/ubuntu",
+        "mirror.netspace.net.au/pub/ubuntu/",
+        "mirror.internode.on.net/pub/ubuntu/ubuntu/",
+        "mirror.ihug.co.nz/ubuntu/",
+        "ftp.iinet.net.au/pub/ubuntu/",
+        "pf.archive.ubuntu.com/ubuntu/",
+        "nc.archive.ubuntu.com/ubuntu",
+        "mirror.linux.org.au/ubuntu/",
+        "mirror.waia.asn.au/ubuntu/",
+        "mirror.optus.net/ubuntu/"
+    ],
+    "archives": [
+        {
+            "/pool/universe/g/gnome-backgrounds/gnome-backgrounds_2.30.0-1_all.deb": false,
+            "size": 9.3,
+            "comment": "Lucid GNOME"
+        },
+        {
+            "/pool/universe/g/gnome-backgrounds/gnome-backgrounds_3.2.0-0ubuntu1_all.deb": false,
+            "size": 8.4,
+            "comment": "Oneiric GNOME"
+        },
+        {
+            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.3_all.deb": false,
+            "size": 3.9,
+            "comment": "Lucid"
+        },
+        {
+            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.6_all.deb": false,
+            "size": 3.3,
+            "comment": "Maverick"
+        },
+        {
+            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.10_all.deb": false,
+            "size": 3,
+            "comment": "Natty"
+        },
+        {
+            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.32.1_all.deb": false,
+            "size": 2.4,
+            "comment": "Oneiric"
+        },
+        {
+            "/pool/universe/u/ubuntu-wallpapers-extra/ubuntu-wallpapers-extra_0.1_all.deb": false,
+            "size": 2.4,
+            "comment": "Extra Wallpapers"
+        },
+        {
+            "/pool/universe/u/ubuntustudio-look/ubuntustudio-wallpapers_0.41_all.deb": false,
+            "size": 6.9,
+            "comment": "Ubuntu Studio"
+        },
+        {
+            "/pool/universe/e/edubuntu-artwork/edubuntu-wallpapers_11.09.1_all.deb": false,
+            "size": 9,
+            "comment": "Edubuntu"
+        }
+    ]
+}

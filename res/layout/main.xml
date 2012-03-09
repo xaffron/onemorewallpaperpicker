@@ -14,11 +14,27 @@
             android:minHeight="320dp"
             android:minWidth="320dp" />
 
+        <CheckBox
+            android:id="@+id/chkdither"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/wpgallery"
+            android:text="Dither to 16bit" />
+
+        <com.mobclix.android.sdk.MobclixMMABannerXLAdView
+            android:id="@+id/advertising_banner_view"
+            android:layout_width="320dp"
+            android:layout_height="50dp"
+            android:layout_alignParentBottom="true"
+            android:tag="adspace" >
+        </com.mobclix.android.sdk.MobclixMMABannerXLAdView>
+
         <LinearLayout
             android:id="@+id/linearLayout1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
+            android:layout_above="@+id/advertising_banner_view"
             android:layout_centerHorizontal="true" >
 
             <Button
@@ -32,15 +48,22 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Help" />
-
         </LinearLayout>
 
-        <CheckBox
-            android:id="@+id/chkdither"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/fileconsole"
+            android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_below="@+id/wpgallery"
-            android:text="Dither to 16bit" />
+            android:layout_above="@+id/linearLayout1"
+            android:layout_centerHorizontal="true"
+            android:text="TextView" />
+
+        <TextView
+            android:id="@+id/debconsole"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/fileconsole"
+            android:layout_centerHorizontal="true"
+            android:text="TextView" />
 
     </RelativeLayout>
