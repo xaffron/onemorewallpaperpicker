@@ -1,5 +1,6 @@
 package com.sunnykwong.omwpp;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -11,8 +12,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
@@ -23,6 +27,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.ByteArrayBuffer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,6 +35,9 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -44,11 +52,23 @@ public class OMWPP extends Application {
 	static public JSONObject CONFIGJSON;
 	static public File SDROOT,THUMBNAILROOT;
 	static public long LASTCONFIGREFRESH;
+	static public BitmapFactory.Options BITMAPOPTIONS, BMPQUERYOPTIONS, BMPVALIDOPTIONS;
+	static public ArrayBlockingQueue<OMWPPThumb> THUMBNAILQUEUE;
 	
 	static public Context CONTEXT;
 	static public AssetManager AM;
 	static public SharedPreferences PREFS;
 	
+	public class OMWPPThumb {
+		public Bitmap thumb;
+		public File file;
+		public OMWPPThumb() {
+			// TODO Auto-generated constructor stub
+		}
+	}
+
+	static public OMWPPThumb END_MARKER;
+
 	@Override
 	public void onCreate() {
 
@@ -57,6 +77,18 @@ public class OMWPP extends Application {
 		CONTEXT = this.getApplicationContext();
 		AM = this.getAssets();
 		PREFS = PreferenceManager.getDefaultSharedPreferences(OMWPP.CONTEXT);
+		
+		BMPQUERYOPTIONS = new BitmapFactory.Options();
+		BMPQUERYOPTIONS.inJustDecodeBounds=true;
+
+		BMPVALIDOPTIONS = new BitmapFactory.Options();
+		BMPVALIDOPTIONS.inSampleSize=16;
+		
+		THUMBNAILQUEUE = new ArrayBlockingQueue<OMWPPThumb>(20,false);
+
+		END_MARKER = new OMWPPThumb();
+		END_MARKER.thumb=null;
+		END_MARKER.file=null;
 		
 		// Check and/or create the wallpapers directory.
         SDROOT = new File(Environment.getExternalStorageDirectory().getPath()+"/ubuntuwps/");
@@ -151,6 +183,52 @@ public class OMWPP extends Application {
 		}
     }
 
+	public static void downloadFile(URL url, File file) {
+		/* Thanks HelloAndroid for the code */
+		/*
+		 * http://www.helloandroid.com/tutorials/how-download-fileimage-url-your-
+		 * device
+		 */
+		try {
+			
+			long startTime = System.currentTimeMillis();
+			Log.d("ImageManager", "download begining");
+			Log.d("ImageManager", "download url:" + url);
+			Log.d("ImageManager", "downloaded file name:" + url.getFile());
+			/* Open a connection to that URL. */
+
+			URLConnection ucon = url.openConnection();
+
+			/*
+			 * Define InputStreams to read from the URLConnection.
+			 */
+			InputStream is = ucon.getInputStream();
+			BufferedInputStream bis = new BufferedInputStream(is);
+
+			/*
+			 * Read bytes to the Buffer until there is nothing more to read(-1).
+			 */
+			ByteArrayBuffer baf = new ByteArrayBuffer(8192);
+			int current = 0;
+			while ((current = bis.read()) != -1) {
+				baf.append((byte) current);
+			}
+
+			/* Convert the Bytes read to a String. */
+			FileOutputStream fos = new FileOutputStream(file);
+			fos.write(baf.toByteArray());
+			fos.close();
+			Log.d("ImageManager",
+					"download ready in"
+							+ ((System.currentTimeMillis() - startTime) / 1000)
+							+ " sec");
+
+		} catch (IOException e) {
+			Log.d("ImageManager", "Error: " + e);
+			e.printStackTrace();
+		}
+	}
+    
     /**
      * Unpack a deb archive provided as an input file, to an output directory.
      * <p>

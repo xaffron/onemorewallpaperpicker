@@ -56,47 +56,56 @@
     ],
     "archives": [
         {
-            "/pool/universe/g/gnome-backgrounds/gnome-backgrounds_2.30.0-1_all.deb": false,
+            "url":"/pool/universe/g/gnome-backgrounds/gnome-backgrounds_2.30.0-1_all.deb",
+			"downloaded":false,
             "size": 9.3,
             "comment": "Lucid GNOME"
         },
         {
-            "/pool/universe/g/gnome-backgrounds/gnome-backgrounds_3.2.0-0ubuntu1_all.deb": false,
+            "url":"/pool/universe/g/gnome-backgrounds/gnome-backgrounds_3.2.0-0ubuntu1_all.deb",
+			"downloaded":false,
             "size": 8.4,
             "comment": "Oneiric GNOME"
         },
         {
-            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.3_all.deb": false,
+            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.3_all.deb",
+			"downloaded":false,
             "size": 3.9,
             "comment": "Lucid"
         },
         {
-            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.6_all.deb": false,
+            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.6_all.deb",
+			"downloaded":false,
             "size": 3.3,
             "comment": "Maverick"
         },
         {
-            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.10_all.deb": false,
+            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.10_all.deb",
+			"downloaded":false,
             "size": 3,
             "comment": "Natty"
         },
         {
-            "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.32.1_all.deb": false,
+            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.32.1_all.deb",
+			"downloaded":false,
             "size": 2.4,
             "comment": "Oneiric"
         },
         {
-            "/pool/universe/u/ubuntu-wallpapers-extra/ubuntu-wallpapers-extra_0.1_all.deb": false,
+            "url":"/pool/universe/u/ubuntu-wallpapers-extra/ubuntu-wallpapers-extra_0.1_all.deb",
+			"downloaded":false,
             "size": 2.4,
             "comment": "Extra Wallpapers"
         },
         {
-            "/pool/universe/u/ubuntustudio-look/ubuntustudio-wallpapers_0.41_all.deb": false,
+            "url":"/pool/universe/u/ubuntustudio-look/ubuntustudio-wallpapers_0.41_all.deb",
+			"downloaded":false,
             "size": 6.9,
             "comment": "Ubuntu Studio"
         },
         {
-            "/pool/universe/e/edubuntu-artwork/edubuntu-wallpapers_11.09.1_all.deb": false,
+            "url":"/pool/universe/e/edubuntu-artwork/edubuntu-wallpapers_11.09.1_all.deb",
+			"downloaded":false,
             "size": 9,
             "comment": "Edubuntu"
         }

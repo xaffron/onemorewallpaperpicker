@@ -4,19 +4,26 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONObject;
 
+import com.sunnykwong.omwpp.OMWPP.OMWPPThumb;
+
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
@@ -44,6 +51,9 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	
 	public Gallery gallery;
 	public Button btnApply, btnHelp;
+	public TextView tvDebConsole, tvFileConsole;
+	public WPPickerAdapter adapter;
+	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,7 +80,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 			} else {
 		    	if (OMWPP.DEBUG) Log.i("OMWPP","Config file & last DL more than 6 months old - need update.");
 				bNeedRefresh = false;
-			}
+			} 
 		}
 		
 		if (bNeedRefresh) {
@@ -105,50 +115,179 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         setContentView(R.layout.main);
         
         gallery = (Gallery)findViewById(R.id.wpgallery);
-        WPPickerAdapter adapter = new WPPickerAdapter();
-        //Load all wallpapers in dir into picker.
-//        int counter=0;
-        for (File f : OMWPP.SDROOT.listFiles()) {
-        	System.out.println(f.getName());
-        	adapter.addItem(f);
-        }
+        adapter = new WPPickerAdapter();
         
-        gallery.setAdapter(adapter);
-        gallery.setSelection(0);
+        //Load all wallpapers in dir into picker.
 
+        tvDebConsole = (TextView)findViewById(R.id.debconsole);
+        tvFileConsole = (TextView)findViewById(R.id.fileconsole);
+        
         btnApply = (Button)findViewById(R.id.btnapply);
         btnHelp = (Button)findViewById(R.id.btnhelp);
+        
+        gallery.setAdapter(adapter);
+
+        new PopulateGalleryTask().execute();
+        new GenerateThumbnailTask().execute();
+
+        gallery.setSelection(0);
     }        
 
-	@Override
+	@Override 
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.statusmenu, menu);
-		return true;
+		return true; 
 	}
 	
-	@Override
+	@Override 
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 		// TODO Auto-generated method stub
 		
 		if (item.getItemId()==R.id.menuforcedownload) {
 			Toast.makeText(OMWPP.CONTEXT, "ForceDownload", Toast.LENGTH_SHORT).show();
+			new DownloadDebsTask().execute("");
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
 	
-    public boolean isConnected() {
-    	ConnectivityManager conMgr =  (ConnectivityManager)(this.getSystemService(Context.CONNECTIVITY_SERVICE));
-    	boolean result = false;
-    	for (NetworkInfo ni: conMgr.getAllNetworkInfo()) {
-    		if (ni.isConnected()) {
-    			result = true;
-    			break;
-    		}
-    	}
-    	return result;
-    }
-        
-    public class WPPickerAdapter extends BaseAdapter {
+	public class DownloadDebsTask extends AsyncTask<String, String, String> {
+		@Override
+		protected String doInBackground(String... params) {
+			int iDebFile, iMirror, iMaxMirrors;
+			try {
+				iMaxMirrors = OMWPP.CONFIGJSON.getJSONArray("mirrors").length();
+				for (iDebFile = 0; iDebFile<OMWPP.CONFIGJSON.getJSONArray("archives").length(); iDebFile++) {
+					JSONObject Debarchive = OMWPP.CONFIGJSON.getJSONArray("archives").getJSONObject(iDebFile);
+					Iterator<String> i = Debarchive.keys();
+					while (i.hasNext()) {
+						//SUNNY
+						asdf;lakd;fj
+					}
+				}
+				
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			return null;
+		}
+		@Override
+		protected void onProgressUpdate(String... values) {
+			// TODO Auto-generated method stub
+			super.onProgressUpdate(values);
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			// TODO Auto-generated method stub
+			super.onPostExecute(result);
+		}
+	}
+
+	public class GenerateThumbnailTask extends AsyncTask<String, String, String> {
+		@Override
+		protected String doInBackground(String... dummy) {
+			OMWPPThumb thumb;
+			while (true) {
+    	    	if (OMWPP.DEBUG) Log.i("OMWPPAdapter","Polling queue.");
+				thumb = OMWPP.THUMBNAILQUEUE.poll();
+				if (thumb==null) {
+					try {
+						Thread.sleep(3000l);
+					} catch (InterruptedException e) {
+						break;
+					}
+				} else {
+					// If we get the end_marker, we're done
+					if (thumb==OMWPP.END_MARKER) {
+						
+						return "";
+					}
+					try {
+						thumb.thumb.compress(CompressFormat.JPEG, 85, new FileOutputStream(thumb.file));
+		    	    	if (OMWPP.DEBUG) Log.i("OMWPPAdapter","Thumbnail saved: " + thumb.file.getName()+".");
+		    	    	publishProgress("Thumbnail " + thumb.file.getName()+" saved.");
+	        		} catch (Exception e) {
+		    	    	if (OMWPP.DEBUG) Log.w("OMWPPAdapter","Thumbnail could not be created: " + thumb.file.getName()+".");
+	        			e.printStackTrace();
+	        			continue;
+	        		}
+				}
+			} 
+			return "";
+		}
+		@Override
+		protected void onProgressUpdate(String... values) {
+			tvFileConsole.setText(values[0]);
+            adapter.notifyDataSetChanged();
+			super.onProgressUpdate(values);
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			tvFileConsole.setText("All Thumbnails saved to SD cache.");
+			super.onPostExecute(result);
+		}
+	}
+	
+	public class PopulateGalleryTask extends AsyncTask<String, String, String> {
+		@Override
+		protected String doInBackground(String... dummy) {
+	        for (File f : OMWPP.SDROOT.listFiles()) {
+	        	final Bitmap bmp, thumbnail;
+	        	// Spot check the file to see if it is a supported bitmap.
+	        	// If it isn't, don't bother - move on.
+	        	bmp = BitmapFactory.decodeFile(f.getAbsolutePath(),OMWPP.BMPVALIDOPTIONS);
+	        	if (bmp==null) {
+	    	    	if (OMWPP.DEBUG) Log.w("OMWPPAdapter",f.getName()+" is not a valid image.");
+	        		continue;
+	        	}
+	        	// If it is, create a thumbnail if it doesn't already exist.
+	        	final File tnfile = new File(OMWPP.THUMBNAILROOT+"/XFTN_" + f.getName());
+	        	if (!tnfile.exists()) {
+	    	    	if (OMWPP.DEBUG) Log.i("OMWPPAdapter","Generating preview for " + f.getName());
+	        		thumbnail =  Bitmap.createScaledBitmap(bmp,320,200,true);
+        			OMWPPThumb thumb = ((OMWPP)getApplication()).new OMWPPThumb();
+        			thumb.thumb=thumbnail;
+        			thumb.file=tnfile;
+
+        			OMWPP.THUMBNAILQUEUE.offer(thumb);
+
+        			// add it to the gallery. 
+			    	if (OMWPP.DEBUG) Log.w("OMWPPAdapter",tnfile.getName()+" generated.");
+			    	publishProgress(f.getName()+" added.");
+		        	adapter.addItem(thumbnail, f);
+	        	} else {
+	        		try {
+	        			thumbnail = BitmapFactory.decodeStream(new FileInputStream(tnfile));
+	        			// add it to the gallery.
+				    	if (OMWPP.DEBUG) Log.i("OMWPPAdapter",tnfile.getName()+" already cached.");
+				    	publishProgress(f.getName()+" added from cache.");
+			        	adapter.addItem(thumbnail, f);
+	        		} catch (Exception e) {
+				    	if (OMWPP.DEBUG) Log.w("OMWPPAdapter",tnfile.getName()+" cache corrupted! Deleting.");
+				    	tnfile.delete();
+	        			e.printStackTrace();
+	        		}
+	        	}
+	        }
+	        // Done looping through files; enqueue the end-marker.
+	        OMWPP.THUMBNAILQUEUE.offer(OMWPP.END_MARKER);
+	        
+	        return "";
+		}
+		@Override
+		protected void onProgressUpdate(String... values) {
+			tvDebConsole.setText(values[0]);
+			super.onProgressUpdate(values);
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			tvDebConsole.setText("Previews loaded and ready.");
+            adapter.notifyDataSetChanged();
+			super.onPostExecute(result);
+		}
+	}
+
+	public class WPPickerAdapter extends BaseAdapter {
 
     	public ArrayList<File> mFiles = new ArrayList<File>();
     	public HashMap<String, Integer> mNames = new HashMap<String, Integer>();
@@ -158,30 +297,15 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         	
         }
 
-        public int addItem(final File f){
-        	mNames.put(f.getName(), mFiles.size());
-        	mPreviews.add(Bitmap.createScaledBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()),320,200,true));
-        	mFiles.add(f);
+        public int addItem(final Bitmap thumbnail, final File bitmap){
+        	mPreviews.add(thumbnail);
+        	mNames.put(bitmap.getName(), mFiles.size());
+        	mFiles.add(bitmap);
         	return mFiles.size();
         }
 
 
         public void removeItem(int pos){
-//        	if (mThemes.size()==0)return;
-//        	String sTheme = mThemes.get(pos);
-//        	if (sTheme.equals(DEFAULTTHEME)) {
-//        		Toast.makeText(OMCThemePickerActivity.this, "The default theme is not removable!", Toast.LENGTH_LONG).show();
-//        		return;
-//        	}
-//        	mThemes.remove(pos);
-//        	//mBitmaps.remove(sTheme);
-//        	mCreds.remove(sTheme);
-//        	mTweaked.remove(sTheme);
-//        	File f = new File(OMCThemePickerActivity.THEMEROOT.getAbsolutePath() + "/" + sTheme);
-//        	THEMEMAP.clear();
-//        	removeDirectory(f);
-//        	purgeBitmapCache();
-//        	purgeTypefaceCache();
         }        
 
         @Override
