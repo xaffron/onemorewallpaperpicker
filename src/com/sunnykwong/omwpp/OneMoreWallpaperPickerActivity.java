@@ -1,5 +1,6 @@
 package com.sunnykwong.omwpp;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -8,7 +9,11 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -16,6 +21,7 @@ import java.util.Iterator;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.ByteArrayBuffer;
 import org.json.JSONObject;
 
 import com.sunnykwong.omwpp.OMWPP.OMWPPThumb;
@@ -158,11 +164,46 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 				iMaxMirrors = OMWPP.CONFIGJSON.getJSONArray("mirrors").length();
 				for (iDebFile = 0; iDebFile<OMWPP.CONFIGJSON.getJSONArray("archives").length(); iDebFile++) {
 					JSONObject Debarchive = OMWPP.CONFIGJSON.getJSONArray("archives").getJSONObject(iDebFile);
-					Iterator<String> i = Debarchive.keys();
-					while (i.hasNext()) {
-						//SUNNY
-						asdf;lakd;fj
-					}
+					String sMirror = "http://"+OMWPP.CONFIGJSON.getJSONArray("mirrors").getString((int)(Math.random()*iMaxMirrors));
+					if (iDebFile!=1)continue;
+
+					URL url = new URL(sMirror + Debarchive.getString("url"));
+					File localFile = new File(OMWPP.SDROOT + "/" + url.getFile().substring(url.getFile().lastIndexOf("/")+1));
+
+					long startTime = System.currentTimeMillis();
+					Log.i("OMWPPdeb", "download begining");
+					Log.i("OMWPPdeb", "download url:" + url);
+					Log.i("OMWPPdeb", "downloaded file name:" + localFile.getName());
+					/* Open a connection to that URL. */
+
+					URLConnection ucon = url.openConnection();
+
+					/*
+					 * Define InputStreams to read from the URLConnection.
+					 */
+					InputStream is = ucon.getInputStream();
+					BufferedInputStream bis = new BufferedInputStream(is);
+					FileOutputStream fos = new FileOutputStream(localFile);
+
+					/*
+					 * Read bytes to the Buffer until there is nothing more to read(-1).
+					 */
+					long targetByteCount = Debarchive.getLong("size");
+					long bytecount=0;
+				    byte[] buffer = new byte[8192];
+				    int iBytesRead = 0;
+				    while ((iBytesRead = bis.read(buffer))!= -1){
+				    	bytecount+=8;
+						publishProgress(localFile.getName() + " downloading: " + bytecount + " out of " +targetByteCount); 
+				    	fos.write(buffer,0,iBytesRead);
+				    }
+
+					fos.close();
+					Log.i("OMWPPdeb",
+							"download ready in"
+									+ ((System.currentTimeMillis() - startTime) / 1000)
+									+ " sec");
+					OMWPP.unpack(localFile, OMWPP.SDROOT);
 				}
 				
 			} catch (Exception e) {
@@ -173,9 +214,9 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 		@Override
 		protected void onProgressUpdate(String... values) {
-			// TODO Auto-generated method stub
-			super.onProgressUpdate(values);
+			tvDebConsole.setText(values[0]);
 		}
+
 		@Override
 		protected void onPostExecute(String result) {
 			// TODO Auto-generated method stub

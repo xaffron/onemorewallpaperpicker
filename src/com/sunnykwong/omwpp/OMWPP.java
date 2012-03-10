@@ -192,9 +192,9 @@ public class OMWPP extends Application {
 		try {
 			
 			long startTime = System.currentTimeMillis();
-			Log.d("ImageManager", "download begining");
-			Log.d("ImageManager", "download url:" + url);
-			Log.d("ImageManager", "downloaded file name:" + url.getFile());
+			Log.i("OMWPPdeb", "download begining");
+			Log.i("OMWPPdeb", "download url:" + url);
+			Log.i("OMWPPdeb", "downloaded file name:" + file.getName());
 			/* Open a connection to that URL. */
 
 			URLConnection ucon = url.openConnection();
@@ -211,6 +211,7 @@ public class OMWPP extends Application {
 			ByteArrayBuffer baf = new ByteArrayBuffer(8192);
 			int current = 0;
 			while ((current = bis.read()) != -1) {
+				Log.i("OMWPPdeb", "downloaded 8k");
 				baf.append((byte) current);
 			}
 
@@ -218,13 +219,13 @@ public class OMWPP extends Application {
 			FileOutputStream fos = new FileOutputStream(file);
 			fos.write(baf.toByteArray());
 			fos.close();
-			Log.d("ImageManager",
+			Log.i("OMWPPdeb",
 					"download ready in"
 							+ ((System.currentTimeMillis() - startTime) / 1000)
 							+ " sec");
 
 		} catch (IOException e) {
-			Log.d("ImageManager", "Error: " + e);
+			Log.i("OMWPPdeb", "Error: " + e);
 			e.printStackTrace();
 		}
 	}
@@ -251,12 +252,25 @@ public class OMWPP extends Application {
         final ArArchiveInputStream debInputStream = (ArArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("ar", is);
         ArArchiveEntry entry = null; 
         while ((entry = (ArArchiveEntry)debInputStream.getNextEntry()) != null) {
-        	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Read entry");
-            final File outputFile = new File(outputDir, entry.getName());
-            final OutputStream outputFileStream = new FileOutputStream(outputFile); 
-            IOUtils.copy(debInputStream, outputFileStream);
-            outputFileStream.close();
-            unpackedFiles.add(outputFile);
+        	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Read entry: " + entry.getName());
+        	if (entry.getName().toLowerCase().endsWith(".png") || entry.getName().toLowerCase().endsWith(".jpg")) {
+            	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is background, extracting.");
+                final File outputFile = new File(outputDir, entry.getName());
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(debInputStream, outputFileStream);
+                outputFileStream.close();
+                unpackedFiles.add(outputFile);
+        		
+        	} else if (entry.getName().toLowerCase().endsWith(".tar") || entry.getName().toLowerCase().endsWith(".gz")) {
+                //RECURSIVE CALL
+                final File outputFile = new File(outputDir, entry.getName());
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(debInputStream, outputFileStream);
+                outputFileStream.close();
+                unpack(outputFile, SDROOT);
+        	} else {
+            	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is not background, skipping.");
+        	}
         }
         debInputStream.close(); 
         return unpackedFiles;
