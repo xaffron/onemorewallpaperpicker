@@ -65,7 +65,7 @@
             android:layout_height="wrap_content"
             android:layout_above="@+id/linearLayout1"
             android:layout_centerHorizontal="true"
-            android:text="TextView" />
+            android:text="Preparing..." />
 
         <TextView
             android:id="@+id/debconsole"
@@ -73,7 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_above="@+id/fileconsole"
             android:layout_centerHorizontal="true"
-            android:text="TextView" />
+            android:text="Preparing..." />
 
 
 

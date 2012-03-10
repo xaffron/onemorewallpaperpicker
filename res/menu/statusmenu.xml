@@ -2,6 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
+        showAsAction="ifRoom" 
         android:id="@+id/menuforcedownload"
         android:enabled="true"
         android:icon="@android:drawable/ic_menu_gallery"
@@ -9,17 +10,25 @@
         android:visible="true">
     </item>
     <item
+        showAsAction="ifRoom" 
         android:id="@+id/menudownloadstatus"
         android:icon="@android:drawable/ic_menu_sort_alphabetically"
         android:title="Show Download Status">
     </item>
     <item
+        showAsAction="ifRoom" 
         android:id="@+id/menuaddcustompaths"
         android:icon="@android:drawable/ic_menu_edit"
-        showAsAction="ifRoom"
         android:title="Add Custom Paths">
     </item>
     <item
+        showAsAction="ifRoom" 
+        android:id="@+id/refreshthumbnails"
+        android:icon="@android:drawable/ic_menu_view"
+        android:title="Refresh Thumbnails">
+    </item>
+    <item
+        showAsAction="ifRoom" 
         android:id="@+id/menucredits"
         android:icon="@android:drawable/ic_menu_help"
         android:title="Version &amp; Credits">

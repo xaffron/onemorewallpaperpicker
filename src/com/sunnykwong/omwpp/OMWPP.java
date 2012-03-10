@@ -22,6 +22,11 @@ import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.ar.ArArchiveEntry;
 import org.apache.commons.compress.archivers.ar.ArArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarUtils;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipUtils;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -242,7 +247,7 @@ public class OMWPP extends Application {
      * @returns A {@link List} of all the unpacked files.
      * 
      */
-    public static List<File> unpack(final File inputDeb, final File outputDir) throws IOException, ArchiveException {
+    public static List<File> unDeb(final File inputDeb, final File outputDir) throws IOException, ArchiveException {
     	final List<File> unpackedFiles = new ArrayList<File>();
     	if (OMWPP.DEBUG) {
     		Log.i("OMWPPdeb",String.format("Unzipping deb file %s.", inputDeb.getAbsoluteFile()));
@@ -261,13 +266,21 @@ public class OMWPP extends Application {
                 outputFileStream.close();
                 unpackedFiles.add(outputFile);
         		
-        	} else if (entry.getName().toLowerCase().endsWith(".tar") || entry.getName().toLowerCase().endsWith(".gz")) {
+        	} else if (entry.getName().toLowerCase().endsWith(".gz")) {
                 //RECURSIVE CALL
                 final File outputFile = new File(outputDir, entry.getName());
                 final OutputStream outputFileStream = new FileOutputStream(outputFile); 
                 IOUtils.copy(debInputStream, outputFileStream);
                 outputFileStream.close();
-                unpack(outputFile, SDROOT);
+                gunzip(outputFile, SDROOT);
+                outputFile.delete();
+        	} else if (entry.getName().toLowerCase().endsWith(".tar")) {
+                //RECURSIVE CALL
+                final File outputFile = new File(outputDir, entry.getName());
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(debInputStream, outputFileStream);
+                outputFileStream.close();
+                gunzip(outputFile, SDROOT);
         	} else {
             	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is not background, skipping.");
         	}
@@ -275,5 +288,74 @@ public class OMWPP extends Application {
         debInputStream.close(); 
         return unpackedFiles;
     }
+
+    public static List<File> untar(final File inputtar, final File outputDir) throws IOException, ArchiveException {
+    	final List<File> unpackedFiles = new ArrayList<File>();
+    	if (OMWPP.DEBUG) {
+    		Log.i("OMWPPdeb",String.format("Unzipping tar file %s.", inputtar.getAbsoluteFile()));
+    	}
+
+        final InputStream is = new FileInputStream(inputtar); 
+        final TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new TarArchiveInputStream(is);
+        TarArchiveEntry entry = null; 
+        while ((entry = (TarArchiveEntry)tarInputStream.getNextEntry()) != null) {
+        	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Read entry: " + entry.getName());
+        	String filename = entry.getName().substring(entry.getName().lastIndexOf("/")+1);
+        	if (filename.toLowerCase().endsWith(".png") || filename.toLowerCase().endsWith(".jpg")) {
+            	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is background, extracting.");
+                final File outputFile = new File(outputDir, filename);
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(tarInputStream, outputFileStream);
+                outputFileStream.close();
+                unpackedFiles.add(outputFile);
+        		
+        	} else if (filename.toLowerCase().endsWith(".gz")) {
+                //RECURSIVE CALL
+                final File outputFile = new File(outputDir, filename);
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(tarInputStream, outputFileStream);
+                outputFileStream.close();
+                gunzip(outputFile, SDROOT);
+                outputFile.delete();
+        	} else if (filename.toLowerCase().endsWith(".tar")) {
+                //RECURSIVE CALL
+                final File outputFile = new File(outputDir, filename);
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(tarInputStream, outputFileStream);
+                outputFileStream.close();
+                untar(outputFile, SDROOT);
+                outputFile.delete();
+        	} else {
+            	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is not background, skipping.");
+        	}
+        }
+        tarInputStream.close(); 
+        return unpackedFiles;
+    }
+
+	public static boolean gunzip(File src, File tgtPath) {
+		try {
+			GzipCompressorInputStream oSRC = new GzipCompressorInputStream(new FileInputStream(src));
+			File tgt = new File(tgtPath.getAbsolutePath()+"/"+src.getName().substring(0,src.getName().lastIndexOf(".")));
+			FileOutputStream oTGT = new FileOutputStream(tgt);
+		    byte[] buffer = new byte[8192];
+		    int iBytesRead = 0;
+		    while ((iBytesRead = oSRC.read(buffer))!= -1){
+		    	oTGT.write(buffer,0,iBytesRead);
+		    }
+		    oTGT.close();
+		    oSRC.close();
+		    
+		    if (tgt.getName().endsWith(".tar")) {
+		    	untar(tgt,SDROOT);
+		    	tgt.delete();
+		    }
+			return true;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
 
 }

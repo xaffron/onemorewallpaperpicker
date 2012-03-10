@@ -64,25 +64,25 @@
         {
             "url":"/pool/universe/g/gnome-backgrounds/gnome-backgrounds_3.2.0-0ubuntu1_all.deb",
 			"downloaded":false,
-            "size": 8.4,
+            "size": 8849184,
             "comment": "Oneiric GNOME"
         },
         {
             "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.3_all.deb",
 			"downloaded":false,
-            "size": 3.9,
+            "size": 4065626,
             "comment": "Lucid"
         },
         {
             "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.6_all.deb",
 			"downloaded":false,
-            "size": 3.3,
+            "size": 3411080,
             "comment": "Maverick"
         },
         {
             "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.10_all.deb",
 			"downloaded":false,
-            "size": 3,
+            "size": 3100848,
             "comment": "Natty"
         },
         {
