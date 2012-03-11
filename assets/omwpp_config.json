@@ -1,5 +1,5 @@
 {
-    "lastupdateepoch":"1331308897000",
+    "lastupdateepoch": "1331308897000",
     "mirrors": [
         "mirror.pnl.gov/ubuntu/",
         "mirror.anl.gov/pub/ubuntu/",
@@ -9,12 +9,12 @@
         "ubuntu.wikimedia.org/ubuntu/",
         "ubuntu.wallawalla.edu/ubuntu/",
         "ubuntu.secsup.org/",
-		"ubuntu.mirrors.tds.net/pub/ubuntu/",
+        "ubuntu.mirrors.tds.net/pub/ubuntu/",
         "ubuntu.mirrors.pair.com/archive/",
-		"ubuntu.mirror.iweb.ca/",
-		"ubuntu.media.mit.edu/ubuntu/",
+        "ubuntu.mirror.iweb.ca/",
+        "ubuntu.media.mit.edu/ubuntu/",
         "ubuntu.arcticnetwork.ca/",
-		"mirrors.xmission.com/ubuntu/",
+        "mirrors.xmission.com/ubuntu/",
         "mirrors.rit.edu/ubuntu/",
         "mirrors.login.com/ubuntu/",
         "mirrors.ecvps.com/ubuntu/",
@@ -56,57 +56,66 @@
     ],
     "archives": [
         {
-            "url":"/pool/universe/g/gnome-backgrounds/gnome-backgrounds_2.30.0-1_all.deb",
-			"downloaded":false,
+            "url": "/pool/universe/g/gnome-backgrounds/gnome-backgrounds_2.30.0-1_all.deb",
+            "downloaded": false,
             "size": 9784412,
+            "md5sum": "ccd86a5659487559014ba7afb2b313f3",
             "comment": "Lucid GNOME"
         },
         {
-            "url":"/pool/universe/g/gnome-backgrounds/gnome-backgrounds_3.2.0-0ubuntu1_all.deb",
-			"downloaded":false,
+            "url": "/pool/universe/g/gnome-backgrounds/gnome-backgrounds_3.2.0-0ubuntu1_all.deb",
+            "downloaded": false,
             "size": 8849184,
+            "md5sum": "7206b74381b2f4f643bb6285d0c83a5f",
             "comment": "Oneiric GNOME"
         },
         {
-            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.3_all.deb",
-			"downloaded":false,
+            "url": "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.3_all.deb",
+            "downloaded": false,
             "size": 4065626,
+            "md5sum": "6b5d3cbf6bbcd14f3dcb1aa26bba7070",
             "comment": "Lucid"
         },
         {
-            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.6_all.deb",
-			"downloaded":false,
+            "url": "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.6_all.deb",
+            "downloaded": false,
             "size": 3411080,
+            "md5sum": "50a21c4dc4b2db6b81dd4142b964922d",
             "comment": "Maverick"
         },
         {
-            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.10_all.deb",
-			"downloaded":false,
+            "url": "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.31.10_all.deb",
+            "downloaded": false,
             "size": 3100848,
+            "md5sum": "1e465140e131baca0573d5ce8fb2b938",
             "comment": "Natty"
         },
         {
-            "url":"/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.32.1_all.deb",
-			"downloaded":false,
-            "size": 2.4,
+            "url": "/pool/main/u/ubuntu-wallpapers/ubuntu-wallpapers_0.32.1_all.deb",
+            "downloaded": false,
+            "size": 2537660,
+            "md5sum": "f2259f2a604510e86fe2745fdc0190a2",
             "comment": "Oneiric"
         },
         {
-            "url":"/pool/universe/u/ubuntu-wallpapers-extra/ubuntu-wallpapers-extra_0.1_all.deb",
-			"downloaded":false,
-            "size": 2.4,
+            "url": "/pool/universe/u/ubuntu-wallpapers-extra/ubuntu-wallpapers-extra_0.1_all.deb",
+            "downloaded": false,
+            "size": 5368920,
+            "md5sum": "7dbcf8dfc933f97b5414fb70b1971519",
             "comment": "Extra Wallpapers"
         },
         {
-            "url":"/pool/universe/u/ubuntustudio-look/ubuntustudio-wallpapers_0.41_all.deb",
-			"downloaded":false,
-            "size": 6.9,
+            "url": "/pool/universe/u/ubuntustudio-look/ubuntustudio-wallpapers_0.41_all.deb",
+            "downloaded": false,
+            "size": 7215178,
+            "md5sum": "ef0ac3233f6c396454a62a747502b295",
             "comment": "Ubuntu Studio"
         },
         {
-            "url":"/pool/universe/e/edubuntu-artwork/edubuntu-wallpapers_11.09.1_all.deb",
-			"downloaded":false,
-            "size": 9,
+            "url": "/pool/universe/e/edubuntu-artwork/edubuntu-wallpapers_11.09.1_all.deb",
+            "downloaded": false,
+            "size": 9393014,
+            "md5sum": "f0e1255b8bf7d55f41af41376f12ddac",
             "comment": "Edubuntu"
         }
     ]

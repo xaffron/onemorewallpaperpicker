@@ -50,6 +50,7 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
+import java.security.MessageDigest;
 
 public class OMWPP extends Application {
 	
@@ -68,15 +69,14 @@ public class OMWPP extends Application {
 		public Bitmap thumb;
 		public File file;
 		public OMWPPThumb() {
-			// TODO Auto-generated constructor stub
+			// TODO Auto-generated constructor stub 
 		}
-	}
+	} 
 
 	static public OMWPPThumb END_MARKER;
 
-	@Override
+	@Override 
 	public void onCreate() {
-
 		// TODO Auto-generated method stub
 		super.onCreate();
 		CONTEXT = this.getApplicationContext();
@@ -87,7 +87,7 @@ public class OMWPP extends Application {
 		BMPQUERYOPTIONS.inJustDecodeBounds=true;
 
 		BMPVALIDOPTIONS = new BitmapFactory.Options();
-		BMPVALIDOPTIONS.inSampleSize=16;
+		BMPVALIDOPTIONS.inSampleSize=4;
 		
 		THUMBNAILQUEUE = new ArrayBlockingQueue<OMWPPThumb>(20,false);
 

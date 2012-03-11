@@ -1,6 +1,8 @@
 package com.sunnykwong.omwpp;
 
 import java.io.BufferedInputStream;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -11,17 +13,23 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.ByteArrayBuffer;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.sunnykwong.omwpp.OMWPP.OMWPPThumb;
@@ -35,6 +43,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.opengl.Visibility;
@@ -73,7 +82,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         
     	if (OMWPP.DEBUG) Log.i("OMWPP","Starting Activity");
         getWindow().setWindowAnimations(android.R.style.Animation_Toast);
-        
+        getWindow().setFormat(PixelFormat.RGB_565);
 		setResult(Activity.RESULT_CANCELED);
  
 		boolean bNeedRefresh=false;;
@@ -193,6 +202,29 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 									}
 								})
 								.show();
+		} else if (item.getItemId()==R.id.menudownloadstatus) {
+			StringBuilder sb = new StringBuilder(1000);
+			try {
+				JSONArray archives = OMWPP.CONFIGJSON.getJSONArray("archives"); 
+				for (int i = 0; i < archives.length(); i++) {
+					JSONObject archive = archives.getJSONObject(i);
+					sb.append(archive.getString("comment"))
+						.append("(" + archive.getLong("size") + " bytes) is ")
+						.append(archive.getBoolean("downloaded")?"downloaded.":"not downloaded.")
+						.append("\n");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			AlertDialog ad = new AlertDialog.Builder(this)
+								.setCancelable(true)
+								.setTitle("Download Status")
+								.setMessage(sb.toString())
+								.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int which) {
+									}
+								}).show();
 		} else {
 			Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
 		}
@@ -211,7 +243,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					String sMirror = "http://"+OMWPP.CONFIGJSON.getJSONArray("mirrors").getString((int)(Math.random()*iMaxMirrors));
 					//
 					//	DEBUG ONLY
-					//					if (iDebFile!=4)continue;
+								if (iDebFile!=3)continue;
 					//	
 					URL url = new URL(sMirror + Debarchive.getString("url"));
 					File localFile = new File(OMWPP.SDROOT + "/" + url.getFile().substring(url.getFile().lastIndexOf("/")+1));
@@ -228,7 +260,9 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					 * Define InputStreams to read from the URLConnection.
 					 */
 					InputStream is = ucon.getInputStream();
-					BufferedInputStream bis = new BufferedInputStream(is);
+					MessageDigest md5 = MessageDigest.getInstance("MD5");
+					BufferedInputStream bis = new BufferedInputStream(new DigestInputStream(is,md5));
+					
 					FileOutputStream fos = new FileOutputStream(localFile);
 
 					/*
@@ -243,7 +277,11 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 						publishProgress(localFile.getName() + " downloading: " + bytecount + " out of " +targetByteCount); 
 				    	fos.write(buffer,0,iBytesRead);
 				    }
-
+				    bis.close();
+				    byte[] digest = md5.digest();
+					BigInteger bigInt = new BigInteger(1, digest);
+					String output = bigInt.toString(16);
+					System.out.println("MD5: " + output);
 					fos.close();
 					Log.i("OMWPPdeb",
 							"download ready in"
@@ -290,7 +328,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 						return "";
 					}
 					try {
-						thumb.thumb.compress(CompressFormat.JPEG, 50, new FileOutputStream(thumb.file));
+						thumb.thumb.compress(CompressFormat.JPEG, 20, new FileOutputStream(thumb.file));
 		    	    	if (OMWPP.DEBUG) Log.i("OMWPPAdapter","Thumbnail saved: " + thumb.file.getName()+".");
 		    	    	publishProgress("Thumbnail " + thumb.file.getName()+" saved.");
 	        		} catch (Exception e) {
@@ -316,9 +354,14 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	}
 	
 	public class PopulateGalleryTask extends AsyncTask<String, String, String> {
+		int count=0;
 		@Override
 		protected String doInBackground(String... dummy) {
-	        for (File f : OMWPP.SDROOT.listFiles()) {
+			//File[] files = OMWPP.SDROOT.listFiles();
+			List<File> filelist = Arrays.asList(OMWPP.SDROOT.listFiles()); 
+			Collections.sort(filelist);
+			File[] files = (File[])filelist.toArray();
+	        for (File f : files) {
 	        	final Bitmap bmp, thumbnail;
 	        	// Spot check the file to see if it is a supported bitmap.
 	        	// If it isn't, don't bother - move on.
@@ -344,7 +387,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		        	adapter.addItem(thumbnail, f);
 	        	} else {
 	        		try {
-	        			thumbnail = BitmapFactory.decodeStream(new FileInputStream(tnfile));
+	        			thumbnail = BitmapFactory.decodeFile(tnfile.getAbsolutePath());
 	        			// add it to the gallery.
 				    	if (OMWPP.DEBUG) Log.i("OMWPPAdapter",tnfile.getName()+" already cached.");
 				    	publishProgress(f.getName()+" added from cache.");
@@ -363,13 +406,18 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 		@Override
 		protected void onProgressUpdate(String... values) {
+			
 			tvDebConsole.setText(values[0]);
+			count++;
+			if (count>3) {
+				count=0;
+	            adapter.notifyDataSetChanged();
+			}
 			super.onProgressUpdate(values);
 		}
 		@Override
 		protected void onPostExecute(String result) {
 			tvDebConsole.setText("Previews loaded and ready.");
-            adapter.notifyDataSetChanged();
 			super.onPostExecute(result);
 		}
 	}
@@ -422,7 +470,8 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
         	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(mPreviews.get(position));
         	ll.requestLayout();
-        	//        	BitmapFactory.Options bo = new BitmapFactory.Options();
+
+//        	BitmapFactory.Options bo = new BitmapFactory.Options();
 //        	bo.inDither=true;
 //        	bo.inPreferredConfig = Bitmap.Config.ARGB_4444;
 //    		((ImageView)ll.findViewById(getResources().getIdentifier("ThemePreview", "id", PKGNAME)))
