@@ -17,6 +17,8 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
@@ -42,6 +44,7 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Rect;
 import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -59,21 +62,31 @@ public class OMWPP extends Application {
 	static public File SDROOT,THUMBNAILROOT;
 	static public long LASTCONFIGREFRESH;
 	static public BitmapFactory.Options BITMAPOPTIONS, BMPQUERYOPTIONS, BMPVALIDOPTIONS;
-	static public ArrayBlockingQueue<OMWPPThumb> THUMBNAILQUEUE;
-	
+	static public ArrayBlockingQueue<File> THUMBNAILQUEUE;
+	static public ArrayBlockingQueue<URL> DOWNLOADQUEUE;
+	static public ArrayBlockingQueue<File> UNZIPQUEUE;
+	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
+	static public OneMoreWallpaperPickerActivity.PopulateGalleryTask PREVIEWTASK=null;
+//	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
+//	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public Context CONTEXT;
 	static public AssetManager AM;
 	static public SharedPreferences PREFS;
+	static public int SCREENWIDTH, SCREENHEIGHT;
 	
-	public class OMWPPThumb {
-		public Bitmap thumb;
-		public File file;
-		public OMWPPThumb() {
-			// TODO Auto-generated constructor stub 
-		}
-	} 
+//	public class OMWPPThumb {
+//		public Bitmap thumb;
+//		public File file;
+//		public OMWPPThumb() {
+//			// TODO Auto-generated constructor stub 
+//		}
+//	} 
+//
+//	static public OMWPPThumb END_MARKER;
+	static public final File ENDMARKER_FILE = new File("");
+	static public URL ENDMARKER_URL;
 
-	static public OMWPPThumb END_MARKER;
+	
 
 	@Override 
 	public void onCreate() {
@@ -89,12 +102,19 @@ public class OMWPP extends Application {
 		BMPVALIDOPTIONS = new BitmapFactory.Options();
 		BMPVALIDOPTIONS.inSampleSize=4;
 		
-		THUMBNAILQUEUE = new ArrayBlockingQueue<OMWPPThumb>(20,false);
+		// Initialize the four queues.
+		THUMBNAILQUEUE = new ArrayBlockingQueue<File>(100,false);
+		DOWNLOADQUEUE = new ArrayBlockingQueue<URL>(20,false);
+		UNZIPQUEUE = new ArrayBlockingQueue<File>(20,false);
 
-		END_MARKER = new OMWPPThumb();
-		END_MARKER.thumb=null;
-		END_MARKER.file=null;
-		
+		SCREENWIDTH = getResources().getDisplayMetrics().widthPixels;
+        SCREENHEIGHT = getResources().getDisplayMetrics().heightPixels;
+
+		try {
+			ENDMARKER_URL=new URL("http://localhost");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		// Check and/or create the wallpapers directory.
         SDROOT = new File(Environment.getExternalStorageDirectory().getPath()+"/ubuntuwps/");
         if (OMWPP.DEBUG) Log.i("OMWPPApp","Checking/Creating " + SDROOT.getAbsoluteFile());
@@ -188,65 +208,48 @@ public class OMWPP extends Application {
 		}
     }
 
-	public static void downloadFile(URL url, File file) {
-		/* Thanks HelloAndroid for the code */
-		/*
-		 * http://www.helloandroid.com/tutorials/how-download-fileimage-url-your-
-		 * device
-		 */
-		try {
-			
-			long startTime = System.currentTimeMillis();
-			Log.i("OMWPPdeb", "download begining");
-			Log.i("OMWPPdeb", "download url:" + url);
-			Log.i("OMWPPdeb", "downloaded file name:" + file.getName());
-			/* Open a connection to that URL. */
+   public static List<File> unZip(final File inputZip, final File outputDir) throws IOException {
+    	final List<File> unpackedFiles = new ArrayList<File>();
+    	if (OMWPP.DEBUG) {
+    		Log.i("OMWPPzip",String.format("Unzipping zip/apk file %s.", inputZip.getAbsoluteFile()));
+    	}
 
-			URLConnection ucon = url.openConnection();
+        final InputStream is = new FileInputStream(inputZip); 
+        final ZipInputStream zipInputStream = (ZipInputStream) new ZipInputStream(is);
+        ZipEntry entry = null; 
+        while ((entry = (ZipEntry)zipInputStream.getNextEntry()) != null) {
+        	if (OMWPP.DEBUG) Log.i("OMWPPzip","Read entry: " + entry.getName());
+        	if (entry.getName().toLowerCase().endsWith(".png") || entry.getName().toLowerCase().endsWith(".jpg")) {
+            	if (OMWPP.DEBUG) Log.i("OMWPPzip","Is background, extracting.");
+                final File outputFile = new File(outputDir, entry.getName());
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(zipInputStream, outputFileStream);
+                outputFileStream.close();
+                unpackedFiles.add(outputFile);
+        		
+        	} else if (entry.getName().toLowerCase().endsWith(".gz")) {
+                //RECURSIVE CALL
+                final File outputFile = new File(outputDir, entry.getName());
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(zipInputStream, outputFileStream);
+                outputFileStream.close();
+                gunzip(outputFile, SDROOT);
+                outputFile.delete();
+        	} else if (entry.getName().toLowerCase().endsWith(".tar")) {
+                //RECURSIVE CALL
+                final File outputFile = new File(outputDir, entry.getName());
+                final OutputStream outputFileStream = new FileOutputStream(outputFile); 
+                IOUtils.copy(zipInputStream, outputFileStream);
+                outputFileStream.close();
+                gunzip(outputFile, SDROOT);
+        	} else {
+            	if (OMWPP.DEBUG) Log.i("OMWPPzip","Is not background, skipping.");
+        	}
+        }
+        zipInputStream.close(); 
+        return unpackedFiles;
+    }
 
-			/*
-			 * Define InputStreams to read from the URLConnection.
-			 */
-			InputStream is = ucon.getInputStream();
-			BufferedInputStream bis = new BufferedInputStream(is);
-
-			/*
-			 * Read bytes to the Buffer until there is nothing more to read(-1).
-			 */
-			ByteArrayBuffer baf = new ByteArrayBuffer(8192);
-			int current = 0;
-			while ((current = bis.read()) != -1) {
-				Log.i("OMWPPdeb", "downloaded 8k");
-				baf.append((byte) current);
-			}
-
-			/* Convert the Bytes read to a String. */
-			FileOutputStream fos = new FileOutputStream(file);
-			fos.write(baf.toByteArray());
-			fos.close();
-			Log.i("OMWPPdeb",
-					"download ready in"
-							+ ((System.currentTimeMillis() - startTime) / 1000)
-							+ " sec");
-
-		} catch (IOException e) {
-			Log.i("OMWPPdeb", "Error: " + e);
-			e.printStackTrace();
-		}
-	}
-    
-    /**
-     * Unpack a deb archive provided as an input file, to an output directory.
-     * <p>
-     * 
-     * @param inputDeb      the input deb file.
-     * @param outputDir     the output directory.
-     * @throws IOException 
-     * @throws ArchiveException 
-     * 
-     * @returns A {@link List} of all the unpacked files.
-     * 
-     */
     public static List<File> unDeb(final File inputDeb, final File outputDir) throws IOException, ArchiveException {
     	final List<File> unpackedFiles = new ArrayList<File>();
     	if (OMWPP.DEBUG) {
@@ -292,17 +295,17 @@ public class OMWPP extends Application {
     public static List<File> untar(final File inputtar, final File outputDir) throws IOException, ArchiveException {
     	final List<File> unpackedFiles = new ArrayList<File>();
     	if (OMWPP.DEBUG) {
-    		Log.i("OMWPPdeb",String.format("Unzipping tar file %s.", inputtar.getAbsoluteFile()));
+    		Log.i("OMWPPtar",String.format("Unzipping tar file %s.", inputtar.getAbsoluteFile()));
     	}
 
         final InputStream is = new FileInputStream(inputtar); 
         final TarArchiveInputStream tarInputStream = (TarArchiveInputStream) new TarArchiveInputStream(is);
         TarArchiveEntry entry = null; 
         while ((entry = (TarArchiveEntry)tarInputStream.getNextEntry()) != null) {
-        	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Read entry: " + entry.getName());
+        	if (OMWPP.DEBUG) Log.i("OMWPPtar","Read entry: " + entry.getName());
         	String filename = entry.getName().substring(entry.getName().lastIndexOf("/")+1);
         	if (filename.toLowerCase().endsWith(".png") || filename.toLowerCase().endsWith(".jpg")) {
-            	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is background, extracting.");
+            	if (OMWPP.DEBUG) Log.i("OMWPPtar","Is background, extracting.");
                 final File outputFile = new File(outputDir, filename);
                 final OutputStream outputFileStream = new FileOutputStream(outputFile); 
                 IOUtils.copy(tarInputStream, outputFileStream);
@@ -326,7 +329,7 @@ public class OMWPP extends Application {
                 untar(outputFile, SDROOT);
                 outputFile.delete();
         	} else {
-            	if (OMWPP.DEBUG) Log.i("OMWPPdeb","Is not background, skipping.");
+            	if (OMWPP.DEBUG) Log.i("OMWPPtar","Is not background, skipping.");
         	}
         }
         tarInputStream.close(); 
@@ -334,6 +337,9 @@ public class OMWPP extends Application {
     }
 
 	public static boolean gunzip(File src, File tgtPath) {
+    	if (OMWPP.DEBUG) {
+    		Log.i("OMWPPgz",String.format("UnGzipping gz file %s.", src.getAbsoluteFile()));
+    	}
 		try {
 			GzipCompressorInputStream oSRC = new GzipCompressorInputStream(new FileInputStream(src));
 			File tgt = new File(tgtPath.getAbsolutePath()+"/"+src.getName().substring(0,src.getName().lastIndexOf(".")));
