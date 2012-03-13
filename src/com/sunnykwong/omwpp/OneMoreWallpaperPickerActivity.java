@@ -162,7 +162,23 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         tvFileConsole = (TextView)findViewById(R.id.fileconsole);
         
         btnApply = (Button)findViewById(R.id.btnapply);
+        btnApply.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				setWallpaper();				
+			}
+		});
         btnHelp = (Button)findViewById(R.id.btnhelp);
+        btnHelp.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				// TODO Auto-generated method stub
+				Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
+			}
+		});
         
         cb16Bit = (CheckBox)findViewById(R.id.chkdither);
         cb16Bit.setChecked(OMWPP.PREFS.getBoolean("cb16Bit", false));
@@ -192,65 +208,70 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         	@Override
         	public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
         			long arg3) {
-        		Thread t = new Thread(){
-        			public void run() {
-                		try {
-                			float fScale = 1f;
-                			Bitmap wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPQUERYOPTIONS);
-                			float wpWidth = OMWPP.BMPQUERYOPTIONS.outWidth;
-                			float wpHeight = OMWPP.BMPQUERYOPTIONS.outHeight;
-                			// If wp is smaller than phone, we scale up
-                			if (wpWidth<OMWPP.WPWIDTH || wpHeight < OMWPP.WPHEIGHT) {
-                				fScale = Math.max(OMWPP.WPWIDTH/wpWidth, OMWPP.WPHEIGHT/wpHeight);
-                			} else {
-                			// If wp is larger than phone, we scale down
-                				fScale = 1f/(Math.min(wpWidth/OMWPP.WPWIDTH, wpHeight/OMWPP.WPHEIGHT));
-                				while (fScale < 0.5) {
-                        			if (OMWPP.DEBUG) Log.i("OMWPPActivity","WP too large - Prescaling by half to fit homescreen.");
-                					OMWPP.BMPAPPLYOPTIONS.inSampleSize*=2;
-                					wpWidth/=2f;
-                					wpHeight/=2f;
-                					fScale*=2f;
-                				}
-                			}
-                			if (OMWPP.DEBUG) Log.i("OMWPPActivity","Scaling by " + fScale + " to fit homescreen.");
-
-                			wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPAPPLYOPTIONS);
-                			
-                			OMWPP.BMPAPPLYOPTIONS.inSampleSize=1;
-
-                			if (OMWPP.PREFS.getBoolean("cb16bit", false)) {
-                    			OMWPP.WPM.setBitmap(
-                    					Bitmap.createScaledBitmap(
-                    							wpBitmap, 
-                    							(int)(wpWidth*fScale), 
-                    							(int)(wpHeight*fScale), 
-                    							false
-                    						));
-                			} else {
-                    			OMWPP.WPM.setBitmap(
-                    					Bitmap.createScaledBitmap(
-                    							wpBitmap, 
-                    							(int)(wpWidth*fScale), 
-                    							(int)(wpHeight*fScale), 
-                    							true
-                    						));
-                			}
-                		} catch (Exception e) {
-                			e.printStackTrace();
-                		}
-        				
-        			};
-        		};
-        		t.start();
-        		Toast.makeText(OneMoreWallpaperPickerActivity.this, "Setting Wallpaper...", Toast.LENGTH_LONG).show();
-        		finish();
+        		setWallpaper();
         	}
 		});
         
 		if (OMWPP.DEBUG) Log.i("OMWPPActivity","Init DONE in " + (System.currentTimeMillis()-startMillis) + "ms");
     }        
 
+    public void setWallpaper() {
+		Thread t = new Thread(){
+			public void run() {
+        		try {
+        			float fScale = 1f;
+        			Bitmap wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPQUERYOPTIONS);
+        			float wpWidth = OMWPP.BMPQUERYOPTIONS.outWidth;
+        			float wpHeight = OMWPP.BMPQUERYOPTIONS.outHeight;
+        			// If wp is smaller than phone, we scale up
+        			if (wpWidth<OMWPP.WPWIDTH || wpHeight < OMWPP.WPHEIGHT) {
+        				fScale = Math.max(OMWPP.WPWIDTH/wpWidth, OMWPP.WPHEIGHT/wpHeight);
+        			} else {
+        			// If wp is larger than phone, we scale down
+        				fScale = 1f/(Math.min(wpWidth/OMWPP.WPWIDTH, wpHeight/OMWPP.WPHEIGHT));
+        				while (fScale < 0.5) {
+                			if (OMWPP.DEBUG) Log.i("OMWPPActivity","WP too large - Prescaling by half to fit homescreen.");
+        					OMWPP.BMPAPPLYOPTIONS.inSampleSize*=2;
+        					wpWidth/=2f;
+        					wpHeight/=2f;
+        					fScale*=2f;
+        				}
+        			}
+        			if (OMWPP.DEBUG) Log.i("OMWPPActivity","Scaling by " + fScale + " to fit homescreen.");
+
+        			wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPAPPLYOPTIONS);
+        			
+        			OMWPP.BMPAPPLYOPTIONS.inSampleSize=1;
+
+        			if (OMWPP.PREFS.getBoolean("cb16bit", false)) {
+            			OMWPP.WPM.setBitmap(
+            					Bitmap.createScaledBitmap(
+            							wpBitmap, 
+            							(int)(wpWidth*fScale), 
+            							(int)(wpHeight*fScale), 
+            							false
+            						));
+        			} else {
+            			OMWPP.WPM.setBitmap(
+            					Bitmap.createScaledBitmap(
+            							wpBitmap, 
+            							(int)(wpWidth*fScale), 
+            							(int)(wpHeight*fScale), 
+            							true
+            						));
+        			}
+        		} catch (Exception e) {
+        			e.printStackTrace();
+        		}
+				
+			};
+		};
+		t.start();
+		Toast.makeText(OneMoreWallpaperPickerActivity.this, "Setting Wallpaper...", Toast.LENGTH_LONG).show();
+		finish();
+
+    }
+    
 	@Override 
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.statusmenu, menu);
