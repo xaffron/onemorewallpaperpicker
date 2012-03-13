@@ -39,12 +39,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Application;
+import android.app.WallpaperManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.graphics.BitmapFactory.Options;
 import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -61,7 +64,7 @@ public class OMWPP extends Application {
 	static public JSONObject CONFIGJSON;
 	static public File SDROOT,THUMBNAILROOT;
 	static public long LASTCONFIGREFRESH;
-	static public BitmapFactory.Options BITMAPOPTIONS, BMPQUERYOPTIONS, BMPVALIDOPTIONS;
+	static public BitmapFactory.Options BMPAPPLYOPTIONS, BMPQUERYOPTIONS, BMPVALIDOPTIONS;
 	static public ArrayBlockingQueue<File> THUMBNAILQUEUE;
 	static public ArrayBlockingQueue<URL> DOWNLOADQUEUE;
 	static public ArrayBlockingQueue<File> UNZIPQUEUE;
@@ -71,8 +74,10 @@ public class OMWPP extends Application {
 //	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public Context CONTEXT;
 	static public AssetManager AM;
+	static public WallpaperManager WPM;
 	static public SharedPreferences PREFS;
 	static public int SCREENWIDTH, SCREENHEIGHT;
+	static public int WPWIDTH, WPHEIGHT;
 	
 //	public class OMWPPThumb {
 //		public Bitmap thumb;
@@ -94,6 +99,7 @@ public class OMWPP extends Application {
 		super.onCreate();
 		CONTEXT = this.getApplicationContext();
 		AM = this.getAssets();
+		WPM = WallpaperManager.getInstance(this);
 		PREFS = PreferenceManager.getDefaultSharedPreferences(OMWPP.CONTEXT);
 		
 		BMPQUERYOPTIONS = new BitmapFactory.Options();
@@ -101,6 +107,17 @@ public class OMWPP extends Application {
 
 		BMPVALIDOPTIONS = new BitmapFactory.Options();
 		BMPVALIDOPTIONS.inSampleSize=4;
+
+		BMPAPPLYOPTIONS = new BitmapFactory.Options();
+		if (OMWPP.PREFS.getBoolean("cb16Bit", false)==false) {
+			BMPAPPLYOPTIONS.inSampleSize=1;
+			BMPAPPLYOPTIONS.inDither=false;
+			BMPAPPLYOPTIONS.inPreferredConfig=Config.ARGB_8888;
+		} else {
+			BMPAPPLYOPTIONS.inSampleSize=1;
+			BMPAPPLYOPTIONS.inDither=true;
+			BMPAPPLYOPTIONS.inPreferredConfig=Config.RGB_565;
+		}
 		
 		// Initialize the four queues.
 		THUMBNAILQUEUE = new ArrayBlockingQueue<File>(100,false);
@@ -110,6 +127,9 @@ public class OMWPP extends Application {
 		SCREENWIDTH = getResources().getDisplayMetrics().widthPixels;
         SCREENHEIGHT = getResources().getDisplayMetrics().heightPixels;
 
+        WPWIDTH = WPM.getDesiredMinimumWidth();
+        WPHEIGHT = WPM.getDesiredMinimumHeight();
+        
 		try {
 			ENDMARKER_URL=new URL("http://localhost");
 		} catch (Exception e) {
@@ -136,8 +156,15 @@ public class OMWPP extends Application {
 			try {
 		        if (OMWPP.DEBUG) Log.i("OMWPPApp","Loading fallback config file");
 				CONFIGJSON = streamToJSONObject(OMWPP.AM.open("omwpp_config.json"));
-		        if (OMWPP.DEBUG) Log.i("OMWPPApp","Copying fallback config file to TN folder");
+		        if (OMWPP.DEBUG) Log.i("OMWPPApp","Copying default files to Wallpaper folder");
 				copyAssetToFile("omwpp_config.json", THUMBNAILROOT.getPath()+ "/omwpp_config.json");
+				try {
+					for (String sFile : OMWPP.AM.list("")) {
+						copyAssetToFile(sFile,SDROOT.getPath()+ "/" + sFile);
+					}
+				} catch (Exception ee) {
+					ee.printStackTrace();
+				}
 			} catch (Exception ee) { e.printStackTrace(); }
 		}
 

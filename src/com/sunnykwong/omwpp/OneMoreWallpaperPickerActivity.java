@@ -41,9 +41,11 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
+import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.opengl.Visibility;
@@ -60,6 +62,8 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -75,6 +79,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	public Gallery gallery;
 	public Button btnApply, btnHelp;
 	public TextView tvDebConsole, tvFileConsole;
+	public CheckBox cb16Bit;
 	public WPPickerAdapter adapter;
 	
     /** Called when the activity is first created. */
@@ -83,14 +88,14 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         super.onCreate(savedInstanceState);
         
         long startMillis = System.currentTimeMillis();
-        OMWPP.THUMBNAILQUEUE.clear();
-        OMWPP.UNZIPQUEUE.clear();
-        OMWPP.DOWNLOADQUEUE.clear();
+        if (OMWPP.THUMBNAILQUEUE!=null)OMWPP.THUMBNAILQUEUE.clear();
+        if (OMWPP.UNZIPQUEUE!=null)OMWPP.UNZIPQUEUE.clear();
+        if (OMWPP.DOWNLOADQUEUE!=null)OMWPP.DOWNLOADQUEUE.clear();
         
         
-    	if (OMWPP.DEBUG) Log.i("OMWPP","Starting Activity");
+    	if (OMWPP.DEBUG) Log.i("OMWPPActivity","Starting Activity");
         getWindow().setWindowAnimations(android.R.style.Animation_Toast);
-        getWindow().setFormat(PixelFormat.RGB_565);
+        getWindow().setFormat(PixelFormat.RGBA_8888);
 		setResult(Activity.RESULT_CANCELED);
  
 		boolean bNeedRefresh=false;;
@@ -159,24 +164,91 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         btnApply = (Button)findViewById(R.id.btnapply);
         btnHelp = (Button)findViewById(R.id.btnhelp);
         
+        cb16Bit = (CheckBox)findViewById(R.id.chkdither);
+        cb16Bit.setChecked(OMWPP.PREFS.getBoolean("cb16Bit", false));
+        cb16Bit.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+			
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				if (isChecked) {
+					OMWPP.BMPAPPLYOPTIONS.inDither=true;
+					OMWPP.BMPAPPLYOPTIONS.inPreferredConfig=Config.RGB_565;
+				} else {
+					OMWPP.BMPAPPLYOPTIONS.inDither=false;
+					OMWPP.BMPAPPLYOPTIONS.inPreferredConfig=Config.ARGB_8888;
+				}
+				OMWPP.PREFS.edit().putBoolean("cb16Bit", isChecked).commit();
+			}
+		});
+        
         gallery.setAdapter(adapter);
-        new PopulateGalleryTask().execute();
-//        new GenerateThumbnailTask().execute();
+        OMWPP.PREVIEWTASK = new PopulateGalleryTask();
+        OMWPP.DOWNLOADTASK = new DownloadDebsTask();
+        OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
+        OMWPP.PREVIEWTASK.execute();
 
         gallery.setSelection(0);
         gallery.setOnItemClickListener(new AdapterView.OnItemClickListener() {
         	@Override
         	public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
         			long arg3) {
-        		try {
-        			WallpaperManager.getInstance(OneMoreWallpaperPickerActivity.this).setBitmap((Bitmap)(gallery.getSelectedItem()));
-        		} catch (Exception e) {
-        			e.printStackTrace();
-        		}
+        		Thread t = new Thread(){
+        			public void run() {
+                		try {
+                			float fScale = 1f;
+                			Bitmap wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPQUERYOPTIONS);
+                			float wpWidth = OMWPP.BMPQUERYOPTIONS.outWidth;
+                			float wpHeight = OMWPP.BMPQUERYOPTIONS.outHeight;
+                			// If wp is smaller than phone, we scale up
+                			if (wpWidth<OMWPP.WPWIDTH || wpHeight < OMWPP.WPHEIGHT) {
+                				fScale = Math.max(OMWPP.WPWIDTH/wpWidth, OMWPP.WPHEIGHT/wpHeight);
+                			} else {
+                			// If wp is larger than phone, we scale down
+                				fScale = 1f/(Math.min(wpWidth/OMWPP.WPWIDTH, wpHeight/OMWPP.WPHEIGHT));
+                				while (fScale < 0.5) {
+                        			if (OMWPP.DEBUG) Log.i("OMWPPActivity","WP too large - Prescaling by half to fit homescreen.");
+                					OMWPP.BMPAPPLYOPTIONS.inSampleSize*=2;
+                					wpWidth/=2f;
+                					wpHeight/=2f;
+                					fScale*=2f;
+                				}
+                			}
+                			if (OMWPP.DEBUG) Log.i("OMWPPActivity","Scaling by " + fScale + " to fit homescreen.");
+
+                			wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPAPPLYOPTIONS);
+                			
+                			OMWPP.BMPAPPLYOPTIONS.inSampleSize=1;
+
+                			if (OMWPP.PREFS.getBoolean("cb16bit", false)) {
+                    			OMWPP.WPM.setBitmap(
+                    					Bitmap.createScaledBitmap(
+                    							wpBitmap, 
+                    							(int)(wpWidth*fScale), 
+                    							(int)(wpHeight*fScale), 
+                    							false
+                    						));
+                			} else {
+                    			OMWPP.WPM.setBitmap(
+                    					Bitmap.createScaledBitmap(
+                    							wpBitmap, 
+                    							(int)(wpWidth*fScale), 
+                    							(int)(wpHeight*fScale), 
+                    							true
+                    						));
+                			}
+                		} catch (Exception e) {
+                			e.printStackTrace();
+                		}
+        				
+        			};
+        		};
+        		t.start();
+        		Toast.makeText(OneMoreWallpaperPickerActivity.this, "Setting Wallpaper...", Toast.LENGTH_LONG).show();
+        		finish();
         	}
 		});
         
-        System.out.println("Init DONE in " + (System.currentTimeMillis()-startMillis) + "ms");
+		if (OMWPP.DEBUG) Log.i("OMWPPActivity","Init DONE in " + (System.currentTimeMillis()-startMillis) + "ms");
     }        
 
 	@Override 
@@ -239,6 +311,22 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		return super.onMenuItemSelected(featureId, item);
 	}
 
+	@Override
+	protected void onPause() {
+		// TODO Auto-generated method stub
+		if (OMWPP.DOWNLOADTASK!=null)OMWPP.DOWNLOADTASK.cancel(true);
+		if (OMWPP.THUMBNAILTASK!=null)OMWPP.THUMBNAILTASK.cancel(true);
+		if (OMWPP.PREVIEWTASK!=null)OMWPP.PREVIEWTASK.cancel(true);
+		OMWPP.DOWNLOADQUEUE.clear();
+		OMWPP.DOWNLOADTASK=null;
+		OMWPP.THUMBNAILQUEUE.clear();
+		OMWPP.THUMBNAILTASK=null;
+		OMWPP.PREVIEWTASK=null;
+		adapter.dispose();
+		super.onPause();
+		
+	}
+	
 	public class DownloadDebsTask extends AsyncTask<String, String, String> {
 		@Override
 		protected String doInBackground(String... params) {
@@ -277,6 +365,10 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 						long startTime =0l;
 						
 						while (tries < 5) {
+							if ( isCancelled()) {
+								if (OMWPP.DEBUG) Log.i("OMWPPDLTask", "Task interrupted. Ending.");
+								return "";
+							}
 							String sMirror = "http://"+OMWPP.CONFIGJSON.getJSONArray("mirrors").getString((int)(Math.random()*iMaxMirrors));
 							URL url = new URL(sMirror + Debarchive.getString("url") + Debarchive.getString("filename"));
 							startTime = System.currentTimeMillis();
@@ -311,6 +403,12 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 							    byte[] buffer = new byte[8192];
 							    int iBytesRead = 0;
 							    while ((iBytesRead = bis.read(buffer))!= -1){
+									if ( isCancelled()) {
+										if (OMWPP.DEBUG) Log.i("OMWPPDLTask", "Task interrupted. Ending.");
+										bis.close();
+										fos.close();
+										return "";
+									}
 							    	bytecount+=iBytesRead;
 									publishProgress(friendlyName + ": Downloaded " + bytecount + " out of " +targetByteCount); 
 							    	fos.write(buffer,0,iBytesRead);
@@ -396,6 +494,12 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		protected String doInBackground(String... dummy) {
 			File fullBmpFile=OMWPP.ENDMARKER_FILE;
 			while (true) {
+				if (isCancelled()) {
+					if (OMWPP.DEBUG) Log.i("OMWPPTNThread", "Task interrupted. Ending.");
+					OMWPP.THUMBNAILQUEUE.clear();
+					priorityFlag=false;
+					return "";
+				}
     	    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Polling queue.");
 				if (priorityFlag) {
 					priorityFlag=false;
@@ -424,7 +528,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread",tnfile.getName()+" already cached.");
 					    	Bitmap bmp = BitmapFactory.decodeFile(tnfile.getAbsolutePath());
 					    	adapter.setBitmap(fullBmpFile,bmp);
-					    	publishProgress(loadedcount++ +" previews loaded; " + savedcount + " new previews cached.");
+					    	loadedcount++;
 			        	} else {
 			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Generating preview for " + fullBmpFile.getName());
 			        		Bitmap bmpFull = BitmapFactory.decodeFile(fullBmpFile.getAbsolutePath());
@@ -433,8 +537,8 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					    	adapter.setBitmap(fullBmpFile,bmp);
 			        		bmp.compress(CompressFormat.JPEG, 85, new FileOutputStream(tnfile));
 			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Thumbnail saved: " + fullBmpFile.getName()+".");
-					    	publishProgress(loadedcount +" previews loaded; " + savedcount++ + " new previews cached.");
-			        	}
+					    	savedcount++;
+					    }
 	        		} catch (Exception e) {
 		    	    	if (OMWPP.DEBUG) Log.w("OMWPPTNThread","Thumbnail could not be created: " + fullBmpFile.getName() +".");
 	        			e.printStackTrace();
@@ -456,7 +560,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 		@Override
 		protected void onPostExecute(String result) {
-			tvFileConsole.setText("All " +(savedcount+loadedcount)+ " Thumbnails prepared.");
+			tvFileConsole.setText((savedcount+loadedcount)+ " Thumbnails prepared.");
 	        adapter.notifyDataSetChanged();
 			super.onPostExecute(result);
 		}
@@ -471,6 +575,10 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 			Collections.sort(filelist);
 			File[] files = (File[])filelist.toArray();
 	        for (File f : files) {
+				if ( isCancelled()) {
+					if (OMWPP.DEBUG) Log.i("OMWPPreview", "Task interrupted. Ending.");
+					return "";
+				}
 	        	final Bitmap bmp, thumbnail;
 	        	// Spot check the file to see if it is a supported bitmap.
 	        	// If it isn't, don't bother - move on.
@@ -506,6 +614,8 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 				if (OMWPP.THUMBNAILTASK.getStatus()==Status.PENDING) 
 					OMWPP.THUMBNAILTASK.execute("","","");
 			} catch (IllegalStateException e) {
+    	    	if (OMWPP.DEBUG) Log.w("OMWPPreview","Illegal State Exception.");
+				e.printStackTrace();
 				try {
 					Thread.sleep(500);
 					OMWPP.THUMBNAILTASK.execute("","","");
@@ -532,13 +642,16 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
 	public class WPPickerAdapter extends BaseAdapter {
 
-    	public ArrayList<File> mFiles = new ArrayList<File>();
-    	public HashMap<File, Integer> mNames = new HashMap<File, Integer>();
-    	public ArrayList<Bitmap> mPreviews = new ArrayList<Bitmap>();
-    	public ArrayList<Boolean> mPreviewReady = new ArrayList<Boolean>();
+    	public ArrayList<File> mFiles;
+    	public HashMap<File, Integer> mNames;
+    	public ArrayList<Bitmap> mPreviews;
+    	public ArrayList<Boolean> mPreviewReady;
 
         public WPPickerAdapter() {
-        	
+        	mFiles = new ArrayList<File>();
+        	mNames = new HashMap<File, Integer>();
+        	mPreviews = new ArrayList<Bitmap>();
+        	mPreviewReady = new ArrayList<Boolean>();
         }
         
         public void setBitmap (final File bitmapFile, final Bitmap bitmap) {
@@ -579,7 +692,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
         @Override
 		public Object getItem(int position) {
-            return BitmapFactory.decodeFile(mFiles.get(position).getAbsolutePath());
+            return mFiles.get(position).getAbsolutePath();
         }
 
         public int getPosition(File f) {
@@ -594,7 +707,6 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         @Override
 		public View getView(int position, View convertView, ViewGroup parent) {
         	File f = mFiles.get(position);
-        	System.out.println("GETVIEW: POS " + position + " - " + f.getName());
 
         	if (OMWPP.THUMBNAILTASK != null && mPreviewReady.get(position)==false) {
         		OMWPP.THUMBNAILTASK.priorityFile = f;
@@ -608,8 +720,8 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         	ll.requestLayout();
 
 //        	BitmapFactory.Options bo = new BitmapFactory.Options();
-//        	bo.inDither=true;
-//        	bo.inPreferredConfig = Bitmap.Config.ARGB_4444;
+//        	bo.in=true;
+//        	bo.inPreferredConfig = Bitmap.Config.ARGB_;
 //    		((ImageView)ll.findViewById(getResources().getIdentifier("ThemePreview", "id", PKGNAME)))
 //    				.setImageBitmap(BitmapFactory.decodeFile(
 //    				OMCThemePickerActivity.THEMEROOT.getAbsolutePath() + "/" + mThemes.get(position) +"/000preview.jpg",bo));
