@@ -144,15 +144,19 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 			at.execute(new String[]{"http://www.yahoo.com"});
 		}
 	
-        setContentView(R.layout.main);	
-//        TextView adtitle = (TextView)findViewById(R.id.AdTitle);
-//        adtitle.setEnabled(false);
-//        adtitle.setVisibility(View.INVISIBLE);
-//        MobclixMMABannerXLAdView adview = (MobclixMMABannerXLAdView)findViewById(R.id.advertising_banner_view);
-//        adview.cancelAd();
-//        adview.pause();
-//        adview.setEnabled(false);
-//        adview.setVisibility(View.INVISIBLE);
+        setContentView(R.layout.main);
+        File testFile = new File(OMWPP.THUMBNAILROOT.getAbsolutePath()+"/.adfree");
+        if (testFile.exists()) {
+	        TextView adtitle = (TextView)findViewById(R.id.AdTitle);
+	        adtitle.setEnabled(false);
+	        adtitle.setVisibility(View.INVISIBLE);
+	        MobclixMMABannerXLAdView adview = (MobclixMMABannerXLAdView)findViewById(R.id.advertising_banner_view);
+	        adview.cancelAd();
+	        adview.pause();
+	        adview.setEnabled(false);
+	        adview.setVisibility(View.INVISIBLE);
+        }
+        
         gallery = (Gallery)findViewById(R.id.wpgallery);
         adapter = new WPPickerAdapter();
         
