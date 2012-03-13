@@ -142,6 +142,12 @@ public class OMWPP extends Application {
         THUMBNAILROOT = getExternalFilesDir(null);
         if (OMWPP.DEBUG) Log.i("OMWPPApp","Checking/Creating " + THUMBNAILROOT.getAbsoluteFile());
         THUMBNAILROOT.mkdirs();
+        File nomedia = new File(THUMBNAILROOT.getAbsolutePath()+"/.nomedia");
+        try {
+        	if (!nomedia.exists()) nomedia.createNewFile();
+        } catch (Exception e) {
+        	e.printStackTrace();
+        }
 		
 		//First of all, let's load up the latest configuration JSON file.
 		try {
