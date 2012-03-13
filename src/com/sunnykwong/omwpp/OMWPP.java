@@ -67,7 +67,7 @@ public class OMWPP extends Application {
 	static public ArrayBlockingQueue<File> UNZIPQUEUE;
 	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public OneMoreWallpaperPickerActivity.PopulateGalleryTask PREVIEWTASK=null;
-//	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
+	static public OneMoreWallpaperPickerActivity.DownloadDebsTask DOWNLOADTASK=null;
 //	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public Context CONTEXT;
 	static public AssetManager AM;
@@ -144,6 +144,15 @@ public class OMWPP extends Application {
 		// Figure out when we last downloaded a new config file.
 		LASTCONFIGREFRESH = OMWPP.PREFS.getLong("LASTCONFIGREFRESH", 0l);
 		
+	}
+	public static void commitJSONChanges() {
+		try {
+			FileWriter oTGT = new FileWriter(new File(THUMBNAILROOT.getPath()+ "/omwpp_config.json"));
+			oTGT.write(OMWPP.CONFIGJSON.toString(5));
+		    oTGT.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static boolean copyAssetToFile(String src, String tgt) {
@@ -362,6 +371,11 @@ public class OMWPP extends Application {
 			return false;
 		}
 	}
-	
+
+	public static boolean matchMD5(final File f, final String targetSum) {
+		boolean result=false;
+		
+		return result;
+	}
 
 }

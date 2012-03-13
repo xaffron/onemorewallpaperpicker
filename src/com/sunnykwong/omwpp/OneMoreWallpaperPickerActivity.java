@@ -3,6 +3,7 @@ package com.sunnykwong.omwpp;
 import java.io.BufferedInputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,6 +31,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.ByteArrayBuffer;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
@@ -46,6 +48,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.opengl.Visibility;
 import android.os.AsyncTask;
+import android.os.AsyncTask.Status;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -235,70 +238,143 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		
 		return super.onMenuItemSelected(featureId, item);
 	}
-	
+
 	public class DownloadDebsTask extends AsyncTask<String, String, String> {
 		@Override
 		protected String doInBackground(String... params) {
 			int iDebFile, iMirror, iMaxMirrors;
-			try {
-				iMaxMirrors = OMWPP.CONFIGJSON.getJSONArray("mirrors").length();
-				for (iDebFile = 0; iDebFile<OMWPP.CONFIGJSON.getJSONArray("archives").length(); iDebFile++) {
-					JSONObject Debarchive = OMWPP.CONFIGJSON.getJSONArray("archives").getJSONObject(iDebFile);
-					String sMirror = "http://"+OMWPP.CONFIGJSON.getJSONArray("mirrors").getString((int)(Math.random()*iMaxMirrors));
-					//
-					//	DEBUG ONLY
-								if (iDebFile!=3)continue;
-					//	
-					URL url = new URL(sMirror + Debarchive.getString("url"));
-					File localFile = new File(OMWPP.SDROOT + "/" + url.getFile().substring(url.getFile().lastIndexOf("/")+1));
-
-					long startTime = System.currentTimeMillis();
-					Log.i("OMWPPdeb", "download begining");
-					Log.i("OMWPPdeb", "download url:" + url);
-					Log.i("OMWPPdeb", "downloaded file name:" + localFile.getName());
-					/* Open a connection to that URL. */
-
-					URLConnection ucon = url.openConnection();
-
-					/*
-					 * Define InputStreams to read from the URLConnection.
-					 */
-					InputStream is = ucon.getInputStream();
-					MessageDigest md5 = MessageDigest.getInstance("MD5");
-					BufferedInputStream bis = new BufferedInputStream(new DigestInputStream(is,md5));
-					
-					FileOutputStream fos = new FileOutputStream(localFile);
-
-					/*
-					 * Read bytes to the Buffer until there is nothing more to read(-1).
-					 */
-					long targetByteCount = Debarchive.getLong("size");
-					long bytecount=0;
-				    byte[] buffer = new byte[8192];
-				    int iBytesRead = 0;
-				    while ((iBytesRead = bis.read(buffer))!= -1){
-				    	bytecount+=8;
-						publishProgress(localFile.getName() + " downloading: " + bytecount + " out of " +targetByteCount); 
-				    	fos.write(buffer,0,iBytesRead);
-				    }
-				    bis.close();
-				    byte[] digest = md5.digest();
-					BigInteger bigInt = new BigInteger(1, digest);
-					String output = bigInt.toString(16);
-					System.out.println("MD5: " + output);
-					fos.close();
-					Log.i("OMWPPdeb",
-							"download ready in"
-									+ ((System.currentTimeMillis() - startTime) / 1000)
-									+ " sec");
-					OMWPP.unDeb(localFile, OMWPP.SDROOT);
+				// First of all, are we online?  If not, don't even try.
+				if (!OMWPP.isConnected()) {
+					Toast.makeText(OMWPP.CONTEXT, "The device is not online... Please try later!", Toast.LENGTH_LONG).show();
+					return "";
 				}
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			
-			return null;
+				// We're going to try a maximum of 5 times.
+				int tries = 1;
+				try {
+					iMaxMirrors = OMWPP.CONFIGJSON.getJSONArray("mirrors").length();
+					for (iDebFile = 0; iDebFile<OMWPP.CONFIGJSON.getJSONArray("archives").length(); iDebFile++) {
+						//
+						//	DEBUG ONLY
+						//if (iDebFile!=3)continue;
+						//	
+						// Set the remote and local filenames
+	
+						JSONObject Debarchive = OMWPP.CONFIGJSON.getJSONArray("archives").getJSONObject(iDebFile);
+						String friendlyName = Debarchive.getString("comment");
+						boolean downloaded = Debarchive.getBoolean("downloaded");
+
+						if (downloaded) {
+							if (OMWPP.DEBUG) Log.i("OMWPPDLTask", friendlyName + " already downloaded.");
+							continue;
+						}
+						
+						File localFile = new File(OMWPP.SDROOT + "/" + Debarchive.getString("filename"));
+						String md5sum = Debarchive.getString("md5sum");
+						
+						boolean success=false;
+						URLConnection ucon = null;
+						InputStream is = null;
+						long startTime =0l;
+						
+						while (tries < 5) {
+							String sMirror = "http://"+OMWPP.CONFIGJSON.getJSONArray("mirrors").getString((int)(Math.random()*iMaxMirrors));
+							URL url = new URL(sMirror + Debarchive.getString("url") + Debarchive.getString("filename"));
+							startTime = System.currentTimeMillis();
+							if (OMWPP.DEBUG) Log.i("OMWPPDLTask", "download url:" + url + " Attempt #" + tries);
+							/* Open a connection to that URL. */
+							try {
+								/*
+								 * Define InputStreams to read from the URLConnection.
+								 */
+								ucon = url.openConnection();
+								is = ucon.getInputStream();
+								
+								// OK, we're properly connected.  Open a digest so we can compute MD5.
+								MessageDigest md5;
+								try {
+									md5 = MessageDigest.getInstance("MD5");
+								} catch (NoSuchAlgorithmException e) {
+									e.printStackTrace();
+									is.close();
+									tries++;
+									continue;
+								}
+								BufferedInputStream bis = new BufferedInputStream(new DigestInputStream(is,md5));
+								
+								FileOutputStream fos = new FileOutputStream(localFile);
+	
+								/*
+								 * Read bytes to the Buffer until there is nothing more to read(-1).
+								 */
+								long targetByteCount = Debarchive.getLong("size");
+								long bytecount=0;
+							    byte[] buffer = new byte[8192];
+							    int iBytesRead = 0;
+							    while ((iBytesRead = bis.read(buffer))!= -1){
+							    	bytecount+=iBytesRead;
+									publishProgress(friendlyName + ": Downloaded " + bytecount + " out of " +targetByteCount); 
+							    	fos.write(buffer,0,iBytesRead);
+							    }
+							    bis.close();
+								fos.close();
+							    
+							    // Compute checksum.
+							    byte[] digest = md5.digest();
+								BigInteger bigInt = new BigInteger(1, digest);
+								String thissum = bigInt.toString(16);
+								
+								// If the md5 sum matches, we're done; otherwise, we retry the download.
+								if (thissum.equals(md5sum)) {
+									publishProgress(friendlyName + " downloaded in "+ ((System.currentTimeMillis() - startTime) / 1000)
+											+ " sec"); 
+									if (OMWPP.DEBUG) Log.i("OMWPPdeb", "download ready in "
+													+ ((System.currentTimeMillis() - startTime) / 1000)
+													+ " sec");
+									Debarchive.put("downloaded", true);
+									OMWPP.commitJSONChanges();
+									success=true;
+									
+									try {
+										OMWPP.unDeb(localFile, OMWPP.SDROOT);
+									} catch (Exception e) {
+										e.printStackTrace();
+									}
+									break;
+								} else {
+									Log.i("OMWPPDLTask", "MD5 sum mismatch! Retry...");
+									publishProgress(friendlyName + ": Downloaded file is corrupt!  Retrying..."); 
+									tries++;
+									continue;
+								}
+							} catch (java.io.FileNotFoundException e) {
+								Log.i("OMWPPDLTask", "File not found on server. Retry...");
+								tries++;
+								continue;
+							} catch (java.net.UnknownHostException e) {
+								Log.i("OMWPPDLTask", "Unknown Host. Retry...");
+								tries++;
+								continue;
+							} catch (java.io.IOException e) {
+								Log.i("OMWPPDLTask", "General IO Error! Retry...");
+								e.printStackTrace();
+								tries++;
+								continue;
+							}
+						}
+						if (!success) {
+							Toast.makeText(OMWPP.CONTEXT, "Network difficulties... Please try later!", Toast.LENGTH_LONG).show();
+							return "";
+						}
+	
+					}
+				} catch (JSONException e) {
+					e.printStackTrace();
+					return "";
+				} catch (MalformedURLException e) {
+					e.printStackTrace();
+					return "";
+				}
+				return "";
 		}
 		@Override
 		protected void onProgressUpdate(String... values) {
@@ -313,16 +389,23 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	}
 
 	public class GenerateThumbnailTask extends AsyncTask<String, String, String> {
-		int count=0;
+		int count=0,savedcount=0,loadedcount=0;
+		public File priorityFile=null;
+		public boolean priorityFlag=false;
 		@Override
 		protected String doInBackground(String... dummy) {
 			File fullBmpFile=OMWPP.ENDMARKER_FILE;
 			while (true) {
-//    	    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Polling queue.");
-				try {
-					fullBmpFile = OMWPP.THUMBNAILQUEUE.take();
-				} catch (Exception e) {
-					e.printStackTrace();
+    	    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Polling queue.");
+				if (priorityFlag) {
+					priorityFlag=false;
+					fullBmpFile = priorityFile;
+				} else {
+					try {
+						fullBmpFile = OMWPP.THUMBNAILQUEUE.take();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 				}
 				if (fullBmpFile==null) {
 					try {
@@ -341,7 +424,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread",tnfile.getName()+" already cached.");
 					    	Bitmap bmp = BitmapFactory.decodeFile(tnfile.getAbsolutePath());
 					    	adapter.setBitmap(fullBmpFile,bmp);
-					    	publishProgress(tnfile.getName()+" added from cache.");
+					    	publishProgress(loadedcount++ +" previews loaded; " + savedcount + " new previews cached.");
 			        	} else {
 			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Generating preview for " + fullBmpFile.getName());
 			        		Bitmap bmpFull = BitmapFactory.decodeFile(fullBmpFile.getAbsolutePath());
@@ -350,7 +433,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					    	adapter.setBitmap(fullBmpFile,bmp);
 			        		bmp.compress(CompressFormat.JPEG, 85, new FileOutputStream(tnfile));
 			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Thumbnail saved: " + fullBmpFile.getName()+".");
-			        		publishProgress("Thumbnail " + fullBmpFile.getName() +" saved.");
+					    	publishProgress(loadedcount +" previews loaded; " + savedcount++ + " new previews cached.");
 			        	}
 	        		} catch (Exception e) {
 		    	    	if (OMWPP.DEBUG) Log.w("OMWPPTNThread","Thumbnail could not be created: " + fullBmpFile.getName() +".");
@@ -373,7 +456,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 		@Override
 		protected void onPostExecute(String result) {
-			tvFileConsole.setText("All Thumbnails saved to SD cache.");
+			tvFileConsole.setText("All " +(savedcount+loadedcount)+ " Thumbnails prepared.");
 	        adapter.notifyDataSetChanged();
 			super.onPostExecute(result);
 		}
@@ -392,11 +475,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	        	// Spot check the file to see if it is a supported bitmap.
 	        	// If it isn't, don't bother - move on.
 	        	if (!f.getName().endsWith(".png") && !f.getName().endsWith(".jpg")) continue;
-//	        	bmp = BitmapFactory.decodeFile(f.getAbsolutePath(),OMWPP.BMPVALIDOPTIONS);
-//	        	if (bmp==null) {
-//	    	    	if (OMWPP.DEBUG) Log.w("OMWPPAdapter",f.getName()+" is not a valid image.");
-//	        		continue;
-//	        	}
+
 	        	// If it is, create a thumbnail if it doesn't already exist.
     	    	if (OMWPP.DEBUG) Log.i("OMWPPreview",f.getName()+" is added to thumbnail queue.");
 	        	OMWPP.THUMBNAILQUEUE.remove(OMWPP.ENDMARKER_FILE);
@@ -422,10 +501,19 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		@Override
 		protected void onProgressUpdate(String... values) {
         	if (OMWPP.THUMBNAILTASK==null) OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
-			if (OMWPP.THUMBNAILTASK.getStatus()==Status.FINISHED ||
-					OMWPP.THUMBNAILTASK.getStatus()==Status.PENDING) 
-				OMWPP.THUMBNAILTASK.execute("","","");
-
+        	else if (OMWPP.THUMBNAILTASK.getStatus()==Status.FINISHED) OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
+			try {
+				if (OMWPP.THUMBNAILTASK.getStatus()==Status.PENDING) 
+					OMWPP.THUMBNAILTASK.execute("","","");
+			} catch (IllegalStateException e) {
+				try {
+					Thread.sleep(500);
+					OMWPP.THUMBNAILTASK.execute("","","");
+				} catch (InterruptedException ee) {
+					e.printStackTrace();
+				}
+			}
+ 
 			tvDebConsole.setText(values[0]);
 			count++;
 			if (count>3) {
@@ -447,6 +535,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
     	public ArrayList<File> mFiles = new ArrayList<File>();
     	public HashMap<File, Integer> mNames = new HashMap<File, Integer>();
     	public ArrayList<Bitmap> mPreviews = new ArrayList<Bitmap>();
+    	public ArrayList<Boolean> mPreviewReady = new ArrayList<Boolean>();
 
         public WPPickerAdapter() {
         	
@@ -454,11 +543,26 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         
         public void setBitmap (final File bitmapFile, final Bitmap bitmap) {
         	int index = mNames.get(bitmapFile);
-        	mPreviews.set(index, bitmap);
+        	if (bitmap==null) {
+        		Bitmap bmp = mPreviews.get(index); 
+        		mPreviews.set(index,BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
+        		mPreviewReady.set(index, false);
+        		bmp.recycle();
+        	}
+        	if (mPreviewReady.get(index)) return;
+        	else {
+	        	mPreviews.set(index, bitmap);
+	        	mPreviewReady.set(index, true);
+        	}
+        }
+        
+        public boolean isPreviewReady(final File bitmapFile) {
+        	return mPreviewReady.get(mNames.get(bitmapFile));
         }
 
         public int addItem(final File bitmapFile){
         	mPreviews.add(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
+        	mPreviewReady.add(false);
         	mNames.put(bitmapFile, mFiles.size());
         	mFiles.add(bitmapFile);
         	return mFiles.size();
@@ -479,7 +583,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         }
 
         public int getPosition(File f) {
-        	return mNames.get(f.getName());
+        	return mNames.get(f);
         }
 
         @Override
@@ -491,6 +595,11 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		public View getView(int position, View convertView, ViewGroup parent) {
         	File f = mFiles.get(position);
         	System.out.println("GETVIEW: POS " + position + " - " + f.getName());
+
+        	if (OMWPP.THUMBNAILTASK != null && mPreviewReady.get(position)==false) {
+        		OMWPP.THUMBNAILTASK.priorityFile = f;
+        		OMWPP.THUMBNAILTASK.priorityFlag = true;
+        	}
         	
         	LinearLayout ll = (LinearLayout)((LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.preview, null);
         	((TextView)ll.findViewById(R.id.wpfilename)).setText(f.getName());
@@ -508,9 +617,11 @@ public class OneMoreWallpaperPickerActivity extends Activity {
             return ll;
         }
 
-        public void dispose() {
+        public void dispose() {    	
         	mFiles.clear();
         	mNames.clear();
+        	mPreviews.clear();
+        	mPreviewReady.clear();
         	System.gc();
         }
     
