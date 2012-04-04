@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.PreparedStatement;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -42,9 +44,14 @@ import android.content.DialogInterface.OnClickListener;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.Bitmap.Config;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Shader;
 import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -53,6 +60,7 @@ import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -145,7 +153,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 	
         setContentView(R.layout.main);
-        File testFile = new File(OMWPP.THUMBNAILROOT.getAbsolutePath()+"/.adfree");
+        File testFile = new File(OMWPP.THUMBNAILROOT.getAbsolutePath()+"/.noads");
         if (testFile.exists()) {
 	        TextView adtitle = (TextView)findViewById(R.id.AdTitle);
 	        adtitle.setEnabled(false);
@@ -182,7 +190,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 				// TODO Auto-generated method stub
 				Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
 			}
-		});
+		}); 
         
         cb16Bit = (CheckBox)findViewById(R.id.chkdither);
         cb16Bit.setChecked(OMWPP.PREFS.getBoolean("cb16Bit", false));
@@ -202,16 +210,19 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		});
         
         gallery.setAdapter(adapter);
+
         OMWPP.PREVIEWTASK = new PopulateGalleryTask();
         OMWPP.DOWNLOADTASK = new DownloadDebsTask();
         OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
         OMWPP.PREVIEWTASK.execute();
+        OMWPP.THUMBNAILTASK.execute("","","");
 
         gallery.setSelection(0);
         gallery.setOnItemClickListener(new AdapterView.OnItemClickListener() {
         	@Override
         	public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
         			long arg3) {
+        		Toast.makeText(OMWPP.CONTEXT, "Setting Wallpaper...", Toast.LENGTH_LONG);
         		setWallpaper();
         	}
 		});
@@ -244,26 +255,41 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         			if (OMWPP.DEBUG) Log.i("OMWPPActivity","Scaling by " + fScale + " to fit homescreen.");
 
         			wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPAPPLYOPTIONS);
-        			
+
         			OMWPP.BMPAPPLYOPTIONS.inSampleSize=1;
 
-        			if (OMWPP.PREFS.getBoolean("cb16bit", false)) {
-            			OMWPP.WPM.setBitmap(
-            					Bitmap.createScaledBitmap(
-            							wpBitmap, 
-            							(int)(wpWidth*fScale), 
-            							(int)(wpHeight*fScale), 
-            							false
-            						));
-        			} else {
-            			OMWPP.WPM.setBitmap(
-            					Bitmap.createScaledBitmap(
-            							wpBitmap, 
-            							(int)(wpWidth*fScale), 
-            							(int)(wpHeight*fScale), 
-            							true
-            						));
+    				Bitmap bmp = Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.ARGB_8888);
+    				Canvas c = new Canvas(bmp);
+
+    				Matrix mx = new Matrix();
+        			int tempwidth = (int)(wpBitmap.getWidth()*fScale);
+        			int tempheight = (int)(wpBitmap.getHeight()*fScale);
+        			float translatex = (OMWPP.WPWIDTH-tempwidth)/2f;
+        			float translatey = (OMWPP.WPHEIGHT-tempheight)/2f;
+        			
+    				mx.postScale(fScale, fScale);
+    				mx.postTranslate(translatex, translatey);
+    				Paint pt = new Paint();
+    				pt.setDither(true);
+    				pt.setAntiAlias(true);
+    				pt.setFilterBitmap(true);
+    				c.drawBitmap(wpBitmap, mx, pt);
+
+        			if (OMWPP.PREFS.getBoolean("cb16Bit", false)) {
+
+            			Paint pixel = new Paint();
+            			pixel.setColor(Color.WHITE);
+            			for (int i=0;i<OMWPP.WPWIDTH;i+=2) {
+            				if (i%20==0)if (OMWPP.DEBUG) Log.i("OMWPPActivity","baking noise... " + i + "/" + OMWPP.WPWIDTH);
+            				for (int j=0;j<OMWPP.WPHEIGHT; j+=2) {
+            					pixel.setAlpha((int)(Math.random()*10));
+            					c.drawPoint(i, j, pixel);
+            				}
+            			}
         			}
+
+    				OMWPP.WPM.setBitmap(bmp);
+    				
         		} catch (Exception e) {
         			e.printStackTrace();
         		}
@@ -271,7 +297,6 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 			};
 		};
 		t.start();
-		Toast.makeText(OneMoreWallpaperPickerActivity.this, "Setting Wallpaper...", Toast.LENGTH_LONG).show();
 		finish();
 
     }
@@ -350,6 +375,140 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		adapter.dispose();
 		super.onPause();
 		
+	}
+	
+	public class PopulateGalleryTask extends AsyncTask<String, String, String> {
+		int count=0;
+		@Override
+		protected String doInBackground(String... dummy) {
+			//File[] files = OMWPP.SDROOT.listFiles();
+			List<File> filelist = Arrays.asList(OMWPP.SDROOT.listFiles()); 
+			Collections.sort(filelist, new Comparator<File>() {
+				@Override
+				public int compare(File object1, File object2) {
+					// TODO Auto-generated method stub
+					if (object2==null) return 1;
+					if (object1==null) return -1;
+					if (object1.getName().toLowerCase().compareTo(object2.getName().toLowerCase())>0) return 1;
+					return -1;
+				}
+			});
+			File[] files = (File[])filelist.toArray();
+	        for (File f : files) {
+				if ( isCancelled()) {
+					if (OMWPP.DEBUG) Log.i("OMWPPreview", "Task interrupted. Ending.");
+					return "";
+				}
+	        	final Bitmap bmp, thumbnail;
+	        	// Spot check the file to see if it is a supported bitmap.
+	        	// If it isn't, don't bother - move on.
+	        	if (!f.getName().endsWith(".png") && !f.getName().endsWith(".jpg")) continue;
+
+	        	// If it is, create a thumbnail if it doesn't already exist.
+    	    	if (OMWPP.DEBUG) Log.i("OMWPPreview",f.getName()+" is added to thumbnail queue.");
+        		try {
+        			OMWPP.THUMBNAILQUEUE.put(f);
+        		} catch (Exception e) {
+        			e.printStackTrace();
+        		}
+	        	adapter.addItem(f);
+	        	publishProgress("Found " + f.getName() + ".");
+	        }
+	        return "";
+		}
+		@Override
+		protected void onProgressUpdate(String... values) {
+        	if (OMWPP.THUMBNAILTASK==null) OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
+        	else if (OMWPP.THUMBNAILTASK.getStatus()==Status.FINISHED) OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
+			try {
+				if (OMWPP.THUMBNAILTASK.getStatus()==Status.PENDING) 
+					OMWPP.THUMBNAILTASK.execute("","","");
+			} catch (IllegalStateException e) {
+    	    	if (OMWPP.DEBUG) Log.w("OMWPPreview","Illegal State Exception.");
+				e.printStackTrace();
+				try {
+					Thread.sleep(500);
+					OMWPP.THUMBNAILTASK.execute("","","");
+				} catch (InterruptedException ee) {
+					e.printStackTrace();
+				}
+			}
+ 
+			tvDebConsole.setText(values[0]);
+			super.onProgressUpdate(values);
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			tvDebConsole.setText("File discovery complete.");
+            adapter.notifyDataSetChanged();
+
+			super.onPostExecute(result);
+		}
+	}
+
+	public class GenerateThumbnailTask extends AsyncTask<String, String, String> {
+		int count=0,savedcount=0,loadedcount=0;
+		@Override
+		protected String doInBackground(String... dummy) {
+			File fullBmpFile=null;
+			while (true) {
+				if (isCancelled()) {
+					if (OMWPP.DEBUG) Log.i("OMWPPTNThread", "Task interrupted. Ending.");
+					OMWPP.THUMBNAILQUEUE.clear();
+					return "";
+				}
+    	    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Polling queue.");
+				try {
+					fullBmpFile = OMWPP.THUMBNAILQUEUE.take();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				if (fullBmpFile==null) {
+					try {
+						Thread.sleep(100l);
+					} catch (InterruptedException e) {
+						break;
+					}
+				} else {
+					try { 
+			        	final File tnfile = new File(OMWPP.THUMBNAILROOT+"/XFTN_" + fullBmpFile.getName());
+			        	if (tnfile.exists()) {
+					    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread",tnfile.getName()+" already cached.");
+					    	loadedcount++;
+			        	} else {
+			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Generating preview for " + fullBmpFile.getName());
+			        		Bitmap bmpFull = BitmapFactory.decodeFile(fullBmpFile.getAbsolutePath());
+			        		Bitmap bmp = Bitmap.createScaledBitmap(bmpFull, 160,100,true);
+			        		bmpFull.recycle(); 
+			        		bmp.compress(CompressFormat.JPEG, 85, new FileOutputStream(tnfile));
+			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Thumbnail saved: " + fullBmpFile.getName()+".");
+					    	savedcount++;
+					    }
+	        		} catch (Exception e) {
+		    	    	if (OMWPP.DEBUG) Log.w("OMWPPTNThread","Thumbnail could not be created: " + fullBmpFile.getName() +".");
+	        			e.printStackTrace();
+	        			continue;
+	        		}
+				}
+			} 
+			return "";
+		}
+		@Override
+		protected void onProgressUpdate(String... values) {
+			tvFileConsole.setText(values[0]);
+			count++;
+//			if (count>3) {
+//				count=0;
+//	            adapter.notifyDataSetChanged();
+//			}
+			super.onProgressUpdate(values);
+		}
+		@Override
+		protected void onPostExecute(String result) {
+			tvFileConsole.setText((savedcount+loadedcount)+ " Thumbnails prepared.");
+	        adapter.notifyDataSetChanged();
+			super.onPostExecute(result);
+		}
 	}
 	
 	public class DownloadDebsTask extends AsyncTask<String, String, String> {
@@ -511,185 +670,26 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 	}
 
-	public class GenerateThumbnailTask extends AsyncTask<String, String, String> {
-		int count=0,savedcount=0,loadedcount=0;
-		public File priorityFile=null;
-		public boolean priorityFlag=false;
-		@Override
-		protected String doInBackground(String... dummy) {
-			File fullBmpFile=OMWPP.ENDMARKER_FILE;
-			while (true) {
-				if (isCancelled()) {
-					if (OMWPP.DEBUG) Log.i("OMWPPTNThread", "Task interrupted. Ending.");
-					OMWPP.THUMBNAILQUEUE.clear();
-					priorityFlag=false;
-					return "";
-				}
-    	    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Polling queue.");
-				if (priorityFlag) {
-					priorityFlag=false;
-					fullBmpFile = priorityFile;
-				} else {
-					try {
-						fullBmpFile = OMWPP.THUMBNAILQUEUE.take();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-				if (fullBmpFile==null) {
-					try {
-						Thread.sleep(100l);
-					} catch (InterruptedException e) {
-						break;
-					}
-				} else {
-					// If we get the end_marker, we're done
-					if (fullBmpFile==OMWPP.ENDMARKER_FILE) {
-						return "";
-					}
-					try { 
-			        	final File tnfile = new File(OMWPP.THUMBNAILROOT+"/XFTN_" + fullBmpFile.getName());
-			        	if (tnfile.exists()) {
-					    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread",tnfile.getName()+" already cached.");
-					    	Bitmap bmp = BitmapFactory.decodeFile(tnfile.getAbsolutePath());
-					    	adapter.setBitmap(fullBmpFile,bmp);
-					    	loadedcount++;
-			        	} else {
-			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Generating preview for " + fullBmpFile.getName());
-			        		Bitmap bmpFull = BitmapFactory.decodeFile(fullBmpFile.getAbsolutePath());
-			        		Bitmap bmp = Bitmap.createScaledBitmap(bmpFull, OMWPP.SCREENWIDTH/2,(int)(OMWPP.SCREENWIDTH*.3125),true);
-			        		bmpFull.recycle(); 
-					    	adapter.setBitmap(fullBmpFile,bmp);
-			        		bmp.compress(CompressFormat.JPEG, 85, new FileOutputStream(tnfile));
-			        		if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Thumbnail saved: " + fullBmpFile.getName()+".");
-					    	savedcount++;
-					    }
-	        		} catch (Exception e) {
-		    	    	if (OMWPP.DEBUG) Log.w("OMWPPTNThread","Thumbnail could not be created: " + fullBmpFile.getName() +".");
-	        			e.printStackTrace();
-	        			continue;
-	        		}
-				}
-			} 
-			return "";
-		}
-		@Override
-		protected void onProgressUpdate(String... values) {
-			tvFileConsole.setText(values[0]);
-			count++;
-			if (count>3) {
-				count=0;
-	            adapter.notifyDataSetChanged();
-			}
-			super.onProgressUpdate(values);
-		}
-		@Override
-		protected void onPostExecute(String result) {
-			tvFileConsole.setText((savedcount+loadedcount)+ " Thumbnails prepared.");
-	        adapter.notifyDataSetChanged();
-			super.onPostExecute(result);
-		}
-	}
-	
-	public class PopulateGalleryTask extends AsyncTask<String, String, String> {
-		int count=0;
-		@Override
-		protected String doInBackground(String... dummy) {
-			//File[] files = OMWPP.SDROOT.listFiles();
-			List<File> filelist = Arrays.asList(OMWPP.SDROOT.listFiles()); 
-			Collections.sort(filelist);
-			File[] files = (File[])filelist.toArray();
-	        for (File f : files) {
-				if ( isCancelled()) {
-					if (OMWPP.DEBUG) Log.i("OMWPPreview", "Task interrupted. Ending.");
-					return "";
-				}
-	        	final Bitmap bmp, thumbnail;
-	        	// Spot check the file to see if it is a supported bitmap.
-	        	// If it isn't, don't bother - move on.
-	        	if (!f.getName().endsWith(".png") && !f.getName().endsWith(".jpg")) continue;
-
-	        	// If it is, create a thumbnail if it doesn't already exist.
-    	    	if (OMWPP.DEBUG) Log.i("OMWPPreview",f.getName()+" is added to thumbnail queue.");
-	        	OMWPP.THUMBNAILQUEUE.remove(OMWPP.ENDMARKER_FILE);
-	        	{
-	        		try {
-	        			OMWPP.THUMBNAILQUEUE.put(f);
-	        		} catch (Exception e) {
-	        			e.printStackTrace();
-	        		}
-	        	}
-	        	adapter.addItem(f);
-	        	publishProgress("Found " + f.getName() + ".");
-	        }
-	        // Done looping through files; enqueue the end-marker.
-	        try {
-	        	OMWPP.THUMBNAILQUEUE.put(OMWPP.ENDMARKER_FILE);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-	        
-	        return "";
-		}
-		@Override
-		protected void onProgressUpdate(String... values) {
-        	if (OMWPP.THUMBNAILTASK==null) OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
-        	else if (OMWPP.THUMBNAILTASK.getStatus()==Status.FINISHED) OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
-			try {
-				if (OMWPP.THUMBNAILTASK.getStatus()==Status.PENDING) 
-					OMWPP.THUMBNAILTASK.execute("","","");
-			} catch (IllegalStateException e) {
-    	    	if (OMWPP.DEBUG) Log.w("OMWPPreview","Illegal State Exception.");
-				e.printStackTrace();
-				try {
-					Thread.sleep(500);
-					OMWPP.THUMBNAILTASK.execute("","","");
-				} catch (InterruptedException ee) {
-					e.printStackTrace();
-				}
-			}
- 
-			tvDebConsole.setText(values[0]);
-			count++;
-			if (count>3) {
-				count=0;
-	            adapter.notifyDataSetChanged();
-			}
-			super.onProgressUpdate(values);
-		}
-		@Override
-		protected void onPostExecute(String result) {
-			tvDebConsole.setText("File discovery complete.");
-            adapter.notifyDataSetChanged();
-			super.onPostExecute(result);
-		}
-	}
-
 	public class WPPickerAdapter extends BaseAdapter {
 
     	public ArrayList<File> mFiles;
     	public HashMap<File, Integer> mNames;
-    	public ArrayList<Bitmap> mPreviews;
     	public ArrayList<Boolean> mPreviewReady;
 
         public WPPickerAdapter() {
         	mFiles = new ArrayList<File>();
         	mNames = new HashMap<File, Integer>();
-        	mPreviews = new ArrayList<Bitmap>();
         	mPreviewReady = new ArrayList<Boolean>();
         }
         
         public void setBitmap (final File bitmapFile, final Bitmap bitmap) {
+        	if (!mNames.containsKey(bitmapFile)) return;
         	int index = mNames.get(bitmapFile);
         	if (bitmap==null) {
-        		Bitmap bmp = mPreviews.get(index); 
-        		mPreviews.set(index,BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
         		mPreviewReady.set(index, false);
-        		bmp.recycle();
         	}
         	if (mPreviewReady.get(index)) return;
         	else {
-	        	mPreviews.set(index, bitmap);
 	        	mPreviewReady.set(index, true);
         	}
         }
@@ -699,7 +699,6 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         }
 
         public int addItem(final File bitmapFile){
-        	mPreviews.add(BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher));
         	mPreviewReady.add(false);
         	mNames.put(bitmapFile, mFiles.size());
         	mFiles.add(bitmapFile);
@@ -731,33 +730,38 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
         @Override
 		public View getView(int position, View convertView, ViewGroup parent) {
+        	if (position >= mFiles.size()) {
+				Log.i("OMWPPAdapter", "Position "+position+ " not loaded yet - show placeholder");
+        		return (LinearLayout)((LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.preview, null);
+        	}
         	File f = mFiles.get(position);
 
         	if (OMWPP.THUMBNAILTASK != null && mPreviewReady.get(position)==false) {
-        		OMWPP.THUMBNAILTASK.priorityFile = f;
-        		OMWPP.THUMBNAILTASK.priorityFlag = true;
+        		try {
+    				Log.i("OMWPPAdapter", "Position "+position+ " not loaded yet - enqueue file " + f.getName());
+            		OMWPP.THUMBNAILQUEUE.put(f);
+        		} catch (InterruptedException e) {
+        			e.printStackTrace();
+        		}
         	}
-        	
         	LinearLayout ll = (LinearLayout)((LayoutInflater)getSystemService(Context.LAYOUT_INFLATER_SERVICE)).inflate(R.layout.preview, null);
         	((TextView)ll.findViewById(R.id.wpfilename)).setText(f.getName());
 
-        	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(mPreviews.get(position));
+        	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(BitmapFactory.decodeFile(OMWPP.THUMBNAILROOT+"/XFTN_"+mFiles.get(position).getName()));
         	ll.requestLayout();
+        	notifyDataSetChanged(); 
+        	
+        	if (position-5>=0) 	
+        		setBitmap(mFiles.get(position-5), null);
+         	if (position+5<mFiles.size())    	
+        		setBitmap(mFiles.get(position+5), null);
 
-//        	BitmapFactory.Options bo = new BitmapFactory.Options();
-//        	bo.in=true;
-//        	bo.inPreferredConfig = Bitmap.Config.ARGB_;
-//    		((ImageView)ll.findViewById(getResources().getIdentifier("ThemePreview", "id", PKGNAME)))
-//    				.setImageBitmap(BitmapFactory.decodeFile(
-//    				OMCThemePickerActivity.THEMEROOT.getAbsolutePath() + "/" + mThemes.get(position) +"/000preview.jpg",bo));
-//        	((TextView)ll.findViewById(getResources().getIdentifier("ThemeCredits", "id", PKGNAME))).setText(mCreds.get(mThemes.get(position)));
             return ll;
         }
 
         public void dispose() {    	
         	mFiles.clear();
         	mNames.clear();
-        	mPreviews.clear();
         	mPreviewReady.clear();
         	System.gc();
         }

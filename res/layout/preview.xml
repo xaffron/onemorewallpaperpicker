@@ -3,18 +3,22 @@
 	android:orientation="vertical" android:layout_height="wrap_content"
 	android:layout_width="wrap_content"
 	android:minHeight="200dp"
-	android:minWidth="300dp">
+	android:minWidth="300dp"             
+	android:background="@drawable/gradient_selector" >
 	<TextView 
 		android:layout_width="fill_parent" android:layout_height="wrap_content"
 		android:id="@+id/wpfilename" android:text="GrayGradient.png"
 		android:textSize="12dp" android:shadowRadius="2"
+		android:paddingLeft="10dp"
 		android:shadowDy="1" android:shadowDx="1" android:shadowColor="#FF000000"
-		android:textColor="#FFFFFFFF" android:layout_gravity="center"/>
+		android:textColor="#FFFFFFFF" android:layout_gravity="center"
+		android:minHeight="40dp" android:maxHeight="20dp"/>
 	<ImageView android:adjustViewBounds="false"
 		android:id="@+id/wppreview" android:layout_width="fill_parent" android:scaleType="fitCenter" 
-		android:minHeight="270dp"
+		android:minHeight="200dp"
 		android:minWidth="320dp" android:layout_gravity="center" android:layout_height="wrap_content"/>
 	<TextView 
+		android:paddingLeft="40dp"
 		android:layout_width="fill_parent" android:layout_height="wrap_content"
 		android:text="Credits" android:id="@+id/wpcredits"
 		android:textColor="#ffffffff" android:maxWidth="280dp" android:minWidth="280dp" android:maxHeight="150dp" android:textSize="10dp" android:padding="10dp"/>

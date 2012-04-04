@@ -1,26 +1,26 @@
 
     <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/relativeLayout1"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent" >
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:background="#CC000000"
+        android:maxHeight="480dp"
+        android:maxWidth="320dp"
+        android:minHeight="480dp"
+        android:minWidth="320dp" >
 
         <Gallery
             android:id="@+id/wpgallery"
             android:layout_width="wrap_content"
-            android:layout_height="fill_parent"
-            android:layout_above="@+id/chkdither"
+            android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
-            android:background="@drawable/gradient_selector"
+            android:maxHeight="320dp"
+            android:maxWidth="320dp"
+            android:minHeight="320dp"
             android:minWidth="320dp" />
-
-        <CheckBox
-            android:id="@+id/chkdither"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentLeft="true"
-            android:layout_above="@+id/debconsole"
-            android:text="Dither to 16bit" />
 
         <com.mobclix.android.sdk.MobclixMMABannerXLAdView
             android:id="@+id/advertising_banner_view"
@@ -38,7 +38,7 @@
             android:layout_centerHorizontal="true"
             android:gravity="center"
             android:text="Advertisement" />
-        
+
         <LinearLayout
             android:id="@+id/linearLayout1"
             android:layout_width="wrap_content"
@@ -61,22 +61,33 @@
 
         <TextView
             android:id="@+id/fileconsole"
-            android:layout_width="fill_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_above="@+id/linearLayout1"
             android:layout_centerHorizontal="true"
-            android:textSize="12dp"
-            android:text="Preparing..." />
+            android:text="Preparing..."
+            android:textSize="12dp" 
+            android:minWidth="360dp"
+            android:maxWidth="360dp"/>
 
         <TextView
             android:id="@+id/debconsole"
-            android:layout_width="fill_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_above="@+id/fileconsole"
             android:layout_centerHorizontal="true"
+            android:text="Preparing..."
             android:textSize="12dp"
-            android:text="Preparing..." />
+            android:minWidth="360dp"
+            android:maxWidth="360dp"/>
 
-
+        <CheckBox
+            android:id="@+id/chkdither"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/debconsole"
+            android:layout_centerHorizontal="true"
+            android:text="Dither to 16bit" />
 
     </RelativeLayout>
+    

@@ -79,16 +79,6 @@ public class OMWPP extends Application {
 	static public int SCREENWIDTH, SCREENHEIGHT;
 	static public int WPWIDTH, WPHEIGHT;
 	
-//	public class OMWPPThumb {
-//		public Bitmap thumb;
-//		public File file;
-//		public OMWPPThumb() {
-//			// TODO Auto-generated constructor stub 
-//		}
-//	} 
-//
-//	static public OMWPPThumb END_MARKER;
-	static public final File ENDMARKER_FILE = new File("");
 	static public URL ENDMARKER_URL;
 
 	
@@ -109,15 +99,10 @@ public class OMWPP extends Application {
 		BMPVALIDOPTIONS.inSampleSize=4;
 
 		BMPAPPLYOPTIONS = new BitmapFactory.Options();
-		if (OMWPP.PREFS.getBoolean("cb16Bit", false)==false) {
-			BMPAPPLYOPTIONS.inSampleSize=1;
-			BMPAPPLYOPTIONS.inDither=false;
-			BMPAPPLYOPTIONS.inPreferredConfig=Config.ARGB_8888;
-		} else {
-			BMPAPPLYOPTIONS.inSampleSize=1;
-			BMPAPPLYOPTIONS.inDither=true;
-			BMPAPPLYOPTIONS.inPreferredConfig=Config.RGB_565;
-		}
+		BMPAPPLYOPTIONS.inSampleSize=1;
+		BMPAPPLYOPTIONS.inScaled=false;
+		BMPAPPLYOPTIONS.inDither=false;
+		BMPAPPLYOPTIONS.inPreferredConfig=Config.ARGB_8888;
 		
 		// Initialize the four queues.
 		THUMBNAILQUEUE = new ArrayBlockingQueue<File>(100,false);
@@ -129,6 +114,8 @@ public class OMWPP extends Application {
 
         WPWIDTH = WPM.getDesiredMinimumWidth();
         WPHEIGHT = WPM.getDesiredMinimumHeight();
+        if (WPWIDTH < SCREENWIDTH*2) WPWIDTH = SCREENWIDTH*2;
+        if (WPHEIGHT < SCREENHEIGHT) WPHEIGHT = SCREENHEIGHT;
         
 		try {
 			ENDMARKER_URL=new URL("http://localhost");
@@ -164,9 +151,8 @@ public class OMWPP extends Application {
 				CONFIGJSON = streamToJSONObject(OMWPP.AM.open("omwpp_config.json"));
 		        if (OMWPP.DEBUG) Log.i("OMWPPApp","Copying default files to Wallpaper folder");
 				copyAssetToFile("omwpp_config.json", THUMBNAILROOT.getPath()+ "/omwpp_config.json");
-				try {
+				try { 
 					for (String sFile : OMWPP.AM.list("")) {
-						copyAssetToFile(sFile,SDROOT.getPath()+ "/" + sFile);
 					}
 				} catch (Exception ee) {
 					ee.printStackTrace();
