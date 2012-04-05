@@ -11,17 +11,6 @@
         android:minHeight="480dp"
         android:minWidth="320dp" >
 
-        <Gallery
-            android:id="@+id/wpgallery"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentTop="true"
-            android:layout_centerHorizontal="true"
-            android:maxHeight="320dp"
-            android:maxWidth="320dp"
-            android:minHeight="320dp"
-            android:minWidth="320dp" />
-
         <com.mobclix.android.sdk.MobclixMMABannerXLAdView
             android:id="@+id/advertising_banner_view"
             android:layout_width="320dp"
@@ -81,13 +70,60 @@
             android:minWidth="360dp"
             android:maxWidth="360dp"/>
 
-        <CheckBox
-            android:id="@+id/chkdither"
+        <RadioGroup
+            android:id="@+id/rgdither"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="horizontal" 
             android:layout_above="@+id/debconsole"
             android:layout_centerHorizontal="true"
-            android:text="Dither to 16bit" />
+            >
+            
+
+            <RadioButton
+                android:id="@+id/dithernone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+            android:textSize="12dp"
+                android:checked="true"
+                android:text="None" />
+
+            <RadioButton
+                android:id="@+id/ditherweak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+            android:textSize="12dp"
+                android:text="Weak" />
+
+            <RadioButton
+                android:id="@+id/ditherstrong"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+            android:textSize="12dp"
+                android:text="Strong" />
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/rgdither"
+            android:layout_centerHorizontal="true"
+            android:textSize="12dp"
+            android:text="Film Grain:                                                      " 
+            android:minWidth="360dp"
+            android:maxWidth="360dp"/>
+
+        <Gallery
+            android:id="@+id/wpgallery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/textView1"
+            android:layout_centerHorizontal="true"
+            android:maxHeight="320dp"
+            android:maxWidth="320dp"
+            android:minHeight="320dp"
+            android:minWidth="320dp" />
 
     </RelativeLayout>
     

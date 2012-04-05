@@ -27,6 +27,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.LogRecord;
+
+import javax.net.ssl.HandshakeCompletedListener;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -38,6 +41,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
@@ -60,6 +64,7 @@ import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -75,6 +80,8 @@ import android.widget.CompoundButton;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -87,13 +94,44 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	public Gallery gallery;
 	public Button btnApply, btnHelp;
 	public TextView tvDebConsole, tvFileConsole;
-	public CheckBox cb16Bit;
+	public RadioGroup cb16Bit;
+	public RadioButton dithernone, ditherweak, ditherstrong;
 	public WPPickerAdapter adapter;
+	static public ProgressDialog PROGRESSDIALOG;
+	static public int PROGRESSVAL;
+	public Handler mHandler;
+    final Runnable UPDATEPROGRESS = new Runnable() {
+    	@Override
+    	public void run() {								
+			if (PROGRESSDIALOG!=null) {
+				PROGRESSDIALOG.setProgress(PROGRESSVAL);
+			}
+    	}
+    };
+    final Runnable UPDATEDONE = new Runnable() {
+    	@Override
+    	public void run() {								
+			if (PROGRESSDIALOG!=null) {
+				PROGRESSDIALOG.dismiss();
+				finish();
+			}
+    	}
+    };
+    final Runnable PROGRESSINIT = new Runnable() {
+    	@Override
+    	public void run() {								
+			if (PROGRESSDIALOG!=null) {
+				PROGRESSDIALOG.show();
+			}
+    	}
+    };
 	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        mHandler = new Handler();
         
         long startMillis = System.currentTimeMillis();
         if (OMWPP.THUMBNAILQUEUE!=null)OMWPP.THUMBNAILQUEUE.clear();
@@ -153,6 +191,12 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		}
 	
         setContentView(R.layout.main);
+        System.out.println(OMWPP.isSDPresent());
+        if (!OMWPP.isSDPresent()) {
+			finish();
+			return;
+        }
+
         File testFile = new File(OMWPP.THUMBNAILROOT.getAbsolutePath()+"/.noads");
         if (testFile.exists()) {
 	        TextView adtitle = (TextView)findViewById(R.id.AdTitle);
@@ -164,6 +208,10 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	        adview.setEnabled(false);
 	        adview.setVisibility(View.INVISIBLE);
         }
+        
+        PROGRESSDIALOG = new ProgressDialog(this, ProgressDialog.STYLE_HORIZONTAL);
+        PROGRESSDIALOG.setMessage("Setting Wallpaper...");
+        PROGRESSDIALOG.setMax(100);
         
         gallery = (Gallery)findViewById(R.id.wpgallery);
         adapter = new WPPickerAdapter();
@@ -179,7 +227,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				setWallpaper();				
+				setWallpaper((String)gallery.getSelectedItem());				
 			}
 		});
         btnHelp = (Button)findViewById(R.id.btnhelp);
@@ -191,23 +239,18 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 				Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
 			}
 		}); 
-        
-        cb16Bit = (CheckBox)findViewById(R.id.chkdither);
-        cb16Bit.setChecked(OMWPP.PREFS.getBoolean("cb16Bit", false));
-        cb16Bit.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-			
+        cb16Bit = (RadioGroup)findViewById(R.id.rgdither);
+        dithernone = (RadioButton)findViewById(R.id.dithernone);
+        ditherweak = (RadioButton)findViewById(R.id.ditherweak);
+        ditherstrong = (RadioButton)findViewById(R.id.ditherstrong);
+        cb16Bit.check(OMWPP.PREFS.getInt("cb16Bit", R.id.dithernone)); 
+        cb16Bit.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
 			@Override
-			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-				if (isChecked) {
-					OMWPP.BMPAPPLYOPTIONS.inDither=true;
-					OMWPP.BMPAPPLYOPTIONS.inPreferredConfig=Config.RGB_565;
-				} else {
-					OMWPP.BMPAPPLYOPTIONS.inDither=false;
-					OMWPP.BMPAPPLYOPTIONS.inPreferredConfig=Config.ARGB_8888;
-				}
-				OMWPP.PREFS.edit().putBoolean("cb16Bit", isChecked).commit();
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				OMWPP.PREFS.edit().putInt("cb16Bit", checkedId).commit();
 			}
 		});
+			
         
         gallery.setAdapter(adapter);
 
@@ -222,20 +265,21 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         	@Override
         	public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
         			long arg3) {
-        		Toast.makeText(OMWPP.CONTEXT, "Setting Wallpaper...", Toast.LENGTH_LONG);
-        		setWallpaper();
+        		mHandler.post(PROGRESSINIT);
+        		setWallpaper((String)gallery.getSelectedItem());
         	}
 		});
         
 		if (OMWPP.DEBUG) Log.i("OMWPPActivity","Init DONE in " + (System.currentTimeMillis()-startMillis) + "ms");
     }        
 
-    public void setWallpaper() {
+    public void setWallpaper(final String fName) {
 		Thread t = new Thread(){
 			public void run() {
-        		try {
+				try {
         			float fScale = 1f;
-        			Bitmap wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPQUERYOPTIONS);
+        			if (OMWPP.DEBUG) Log.i("OMWPPActivity","New Wallpaper: " + fName);
+        			Bitmap wpBitmap = BitmapFactory.decodeFile(fName,OMWPP.BMPQUERYOPTIONS);
         			float wpWidth = OMWPP.BMPQUERYOPTIONS.outWidth;
         			float wpHeight = OMWPP.BMPQUERYOPTIONS.outHeight;
         			// If wp is smaller than phone, we scale up
@@ -254,11 +298,23 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         			}
         			if (OMWPP.DEBUG) Log.i("OMWPPActivity","Scaling by " + fScale + " to fit homescreen.");
 
-        			wpBitmap = BitmapFactory.decodeFile((String)gallery.getSelectedItem(),OMWPP.BMPAPPLYOPTIONS);
+        			wpBitmap = BitmapFactory.decodeFile(fName,OMWPP.BMPAPPLYOPTIONS);
 
         			OMWPP.BMPAPPLYOPTIONS.inSampleSize=1;
 
-    				Bitmap bmp = Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.ARGB_8888);
+    				// If no dither, we're done.  Otherwise, bake noise.
+    				Bitmap bmp;
+    				double ditherStrength=0f;
+    				
+        			if (OMWPP.PREFS.getInt("cb16Bit", R.id.dithernone)==R.id.ditherstrong) {
+        				ditherStrength=24d;
+        				bmp= Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.RGB_565);
+        			} else if (OMWPP.PREFS.getInt("cb16Bit", R.id.dithernone)==R.id.ditherweak) {
+        				ditherStrength=6d;
+        				bmp= Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.RGB_565);
+        			} else {
+        				bmp= Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.ARGB_8888);
+        			}
     				Canvas c = new Canvas(bmp);
 
     				Matrix mx = new Matrix();
@@ -274,21 +330,40 @@ public class OneMoreWallpaperPickerActivity extends Activity {
     				pt.setAntiAlias(true);
     				pt.setFilterBitmap(true);
     				c.drawBitmap(wpBitmap, mx, pt);
-
-        			if (OMWPP.PREFS.getBoolean("cb16Bit", false)) {
-
-            			Paint pixel = new Paint();
-            			pixel.setColor(Color.WHITE);
-            			for (int i=0;i<OMWPP.WPWIDTH;i+=2) {
-            				if (i%20==0)if (OMWPP.DEBUG) Log.i("OMWPPActivity","baking noise... " + i + "/" + OMWPP.WPWIDTH);
-            				for (int j=0;j<OMWPP.WPHEIGHT; j+=2) {
-            					pixel.setAlpha((int)(Math.random()*10));
-            					c.drawPoint(i, j, pixel);
-            				}
-            			}
+    				wpBitmap.recycle();
+        			
+        			if (ditherStrength!=0) {
+        				int color,r,g,b;
+        				int ditherfactor;
+        				if (OMWPP.DEBUG) Log.i("OMWPPActivity","Dither Strength is " + ditherStrength);
+	        			for (int i=0;i<OMWPP.WPWIDTH;i+=1) {
+	        				if (i%100==0) {
+	        					if (OMWPP.DEBUG) Log.i("OMWPPActivity","baking noise... " + i + "/" + OMWPP.WPWIDTH);
+	        				}
+        					PROGRESSVAL = (int)(i*1f/OMWPP.WPWIDTH*0.9);
+        					mHandler.post(UPDATEPROGRESS);
+	        				for (int j=0;j<OMWPP.WPHEIGHT; j+=1) {
+	        					color=bmp.getPixel(i, j);
+	        					ditherfactor = (int)((Math.random()-0.5d)*ditherStrength);
+	        					if (ditherfactor>0) {
+		        					r=Math.min(((color >> 16) & 0xFF)+ditherfactor,255);
+		        					g=Math.min(((color >> 8) & 0xFF)+ditherfactor,255);
+		        					b=Math.min((color & 0xFF)+ditherfactor,255);
+		        					bmp.setPixel(i, j, Color.rgb(r,g,b));
+	        					} else if (ditherfactor<0) {
+		        					r=Math.max(((color >> 16) & 0xFF)+ditherfactor,0);
+		        					g=Math.max(((color >> 8) & 0xFF)+ditherfactor,0);
+		        					b=Math.max((color & 0xFF)+ditherfactor,0);
+		        					bmp.setPixel(i, j, Color.rgb(r,g,b));
+	        					}
+	        				}
+	        			}
         			}
 
+					PROGRESSVAL = (int)(95);
+					mHandler.post(UPDATEPROGRESS);
     				OMWPP.WPM.setBitmap(bmp);
+    				mHandler.post(UPDATEDONE);
     				
         		} catch (Exception e) {
         			e.printStackTrace();
@@ -297,7 +372,6 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 			};
 		};
 		t.start();
-		finish();
 
     }
     

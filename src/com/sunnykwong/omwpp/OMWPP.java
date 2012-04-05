@@ -110,32 +110,37 @@ public class OMWPP extends Application {
 		UNZIPQUEUE = new ArrayBlockingQueue<File>(20,false);
 
 		SCREENWIDTH = getResources().getDisplayMetrics().widthPixels;
-        SCREENHEIGHT = getResources().getDisplayMetrics().heightPixels;
+        SCREENHEIGHT = getResources().getDisplayMetrics().heightPixels; 
 
         WPWIDTH = WPM.getDesiredMinimumWidth();
         WPHEIGHT = WPM.getDesiredMinimumHeight();
         if (WPWIDTH < SCREENWIDTH*2) WPWIDTH = SCREENWIDTH*2;
         if (WPHEIGHT < SCREENHEIGHT) WPHEIGHT = SCREENHEIGHT;
+        if (OMWPP.DEBUG) Log.i("OMWPPApp","Target Width is" + WPWIDTH);
+        if (OMWPP.DEBUG) Log.i("OMWPPApp","Target Height is " + WPHEIGHT);
         
+         
 		try {
 			ENDMARKER_URL=new URL("http://localhost");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		// Check and/or create the wallpapers directory.
-        SDROOT = new File(Environment.getExternalStorageDirectory().getPath()+"/ubuntuwps/");
-        if (OMWPP.DEBUG) Log.i("OMWPPApp","Checking/Creating " + SDROOT.getAbsoluteFile());
-        SDROOT.mkdirs();
-        THUMBNAILROOT = getExternalFilesDir(null);
-        if (OMWPP.DEBUG) Log.i("OMWPPApp","Checking/Creating " + THUMBNAILROOT.getAbsoluteFile());
-        THUMBNAILROOT.mkdirs();
-        File nomedia = new File(THUMBNAILROOT.getAbsolutePath()+"/.nomedia");
-        try {
-        	if (!nomedia.exists()) nomedia.createNewFile();
-        } catch (Exception e) {
-        	e.printStackTrace();
-        }
 		
+		if (isSDPresent()) {
+			// Check and/or create the wallpapers directory.
+	        SDROOT = new File(Environment.getExternalStorageDirectory().getPath()+"/ubuntuwps/");
+	        if (OMWPP.DEBUG) Log.i("OMWPPApp","Checking/Creating " + SDROOT.getAbsoluteFile());
+	        SDROOT.mkdirs();
+	        THUMBNAILROOT = getExternalFilesDir(null);
+	        if (OMWPP.DEBUG) Log.i("OMWPPApp","Checking/Creating " + THUMBNAILROOT.getAbsoluteFile());
+	        THUMBNAILROOT.mkdirs();
+	        File nomedia = new File(THUMBNAILROOT.getAbsolutePath()+"/.nomedia");
+	        try {
+	        	if (!nomedia.exists()) nomedia.createNewFile();
+	        } catch (Exception e) {
+	        	e.printStackTrace();
+	        }
+		}
 		//First of all, let's load up the latest configuration JSON file.
 		try {
 			if (isSDPresent()) {
