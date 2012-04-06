@@ -23,12 +23,18 @@
         <meta-data
             android:name="com.mobclix.APPLICATION_ID"
             android:value="67f25acf-8902-401f-80ea-33c62a497d5d" />
-
+        <receiver android:name=".OMWPPFinishReceiver" >
+    		<intent-filter>
+        		<action android:name="android.intent.action.WALLPAPER_CHANGED" />
+         		<category android:name="android.intent.category.DEFAULT" />
+        	</intent-filter>
+        </receiver>
         <activity
             android:name=".OneMoreWallpaperPickerActivity"
             android:label="@string/app_name"
             android:screenOrientation="sensor"
             android:theme="@android:style/Theme.Translucent"
+            android:configChanges="keyboardHidden|orientation|screenSize"
              >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

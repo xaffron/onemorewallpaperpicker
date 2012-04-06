@@ -17,6 +17,8 @@ import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -65,19 +67,19 @@ public class OMWPP extends Application {
 	static public File SDROOT,THUMBNAILROOT;
 	static public long LASTCONFIGREFRESH;
 	static public BitmapFactory.Options BMPAPPLYOPTIONS, BMPQUERYOPTIONS, BMPVALIDOPTIONS;
-	static public ArrayBlockingQueue<File> THUMBNAILQUEUE;
+	static public ConcurrentLinkedQueue<File> THUMBNAILQUEUE;
 	static public ArrayBlockingQueue<URL> DOWNLOADQUEUE;
 	static public ArrayBlockingQueue<File> UNZIPQUEUE;
 	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public OneMoreWallpaperPickerActivity.PopulateGalleryTask PREVIEWTASK=null;
 	static public OneMoreWallpaperPickerActivity.DownloadDebsTask DOWNLOADTASK=null;
-//	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public Context CONTEXT;
 	static public AssetManager AM;
 	static public WallpaperManager WPM;
 	static public SharedPreferences PREFS;
 	static public int SCREENWIDTH, SCREENHEIGHT;
 	static public int WPWIDTH, WPHEIGHT;
+	static public boolean WALLPAPERDONE=false;
 	
 	static public URL ENDMARKER_URL;
 
@@ -105,7 +107,7 @@ public class OMWPP extends Application {
 		BMPAPPLYOPTIONS.inPreferredConfig=Config.ARGB_8888;
 		
 		// Initialize the four queues.
-		THUMBNAILQUEUE = new ArrayBlockingQueue<File>(100,false);
+		THUMBNAILQUEUE = new ConcurrentLinkedQueue<File>();
 		DOWNLOADQUEUE = new ArrayBlockingQueue<URL>(20,false);
 		UNZIPQUEUE = new ArrayBlockingQueue<File>(20,false);
 
