@@ -359,11 +359,10 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         				int ditherfactor;
         				if (OMWPP.DEBUG) Log.i("OMWPPActivity","Dither Strength is " + ditherStrength);
 	        			for (int i=0;i<OMWPP.WPWIDTH;i+=1) {
-	        				if (i%100==0) {
-	        					if (OMWPP.DEBUG) Log.i("OMWPPActivity","baking noise... " + i + "/" + OMWPP.WPWIDTH);
-	        				}
-        					PROGRESSVAL = (int)(i*1f/OMWPP.WPWIDTH*90);
-        					mHandler.post(UPDATEPROGRESS);
+        					if (i%10==0) {
+        						PROGRESSVAL = (int)(i*1f/OMWPP.WPWIDTH*90);
+            					mHandler.post(UPDATEPROGRESS);
+        					}
 	        				for (int j=0;j<OMWPP.WPHEIGHT; j+=1) {
 	        					color=bmp.getPixel(i, j);
 	        					ditherfactor = (int)((Math.random()-0.5d)*ditherStrength);
@@ -458,6 +457,12 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 									public void onClick(DialogInterface dialog, int which) {
 									}
 								}).show();
+		} else if (item.getItemId()==R.id.refreshthumbnails) {
+			for (File f:OMWPP.THUMBNAILROOT.listFiles()) {
+				if (f.getName().endsWith("omwpp_config.json")) continue;
+				f.delete();
+			}
+		    if (adapter!=null) adapter.notifyDataSetChanged();
 		} else {
 			Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
 		}
@@ -573,7 +578,6 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					OMWPP.THUMBNAILQUEUE.clear();
 					return "";
 				}
-    	    	if (OMWPP.DEBUG) Log.i("OMWPPTNThread","Polling queue.");
 				try {
 					fullBmpFile = OMWPP.THUMBNAILQUEUE.poll();
 				} catch (Exception e) {
