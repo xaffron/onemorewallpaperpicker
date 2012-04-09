@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.LogRecord;
 
 import javax.net.ssl.HandshakeCompletedListener;
@@ -284,7 +285,11 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         	public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
         			long arg3) {
         		mHandler.post(PROGRESSINIT);
-        		setWallpaper((String)gallery.getSelectedItem());
+        		String s = new String((String)gallery.getSelectedItem());
+        		adapter.notifyDataSetInvalidated();
+        		adapter.dispose();
+        		adapter=null;
+        		setWallpaper(s);
         	}
 		});
         
@@ -297,6 +302,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		wallpaperThread = new Thread(){
 			public void run() {
 				try {
+					System.gc();
         			float fScale = 1f;
         			if (OMWPP.DEBUG) Log.i("OMWPPActivity","New Wallpaper: " + fName);
         			Bitmap wpBitmap = BitmapFactory.decodeFile(fName,OMWPP.BMPQUERYOPTIONS);
@@ -326,13 +332,13 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
     				// If no dither, we're done.  Otherwise, bake noise.
     				Bitmap bmp;
-    				double ditherStrength=0f;
+    				int ditherStrength=0;
     				
         			if (OMWPP.PREFS.getInt("cb16Bit", R.id.dithernone)==R.id.ditherstrong) {
-        				ditherStrength=24d;
+        				ditherStrength=24;
         				bmp= Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.RGB_565);
         			} else if (OMWPP.PREFS.getInt("cb16Bit", R.id.dithernone)==R.id.ditherweak) {
-        				ditherStrength=6d;
+        				ditherStrength=6;
         				bmp= Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.RGB_565);
         			} else {
         				bmp= Bitmap.createBitmap(OMWPP.WPWIDTH,OMWPP.WPHEIGHT,Config.ARGB_8888);
@@ -353,10 +359,16 @@ public class OneMoreWallpaperPickerActivity extends Activity {
     				pt.setFilterBitmap(true);
     				c.drawBitmap(wpBitmap, mx, pt);
     				wpBitmap.recycle();
-        			
+    				c=null;
+    				System.gc();
+    				
+    				int[] pixels = new int[OMWPP.WPWIDTH*OMWPP.WPHEIGHT];
+        			bmp.getPixels(pixels, 0, OMWPP.WPWIDTH, 0, 0, OMWPP.WPWIDTH, OMWPP.WPHEIGHT);
+
         			if (ditherStrength!=0) {
         				int color,r,g,b;
         				int ditherfactor;
+        				int count=0;
         				if (OMWPP.DEBUG) Log.i("OMWPPActivity","Dither Strength is " + ditherStrength);
 	        			for (int i=0;i<OMWPP.WPWIDTH;i+=1) {
         					if (i%10==0) {
@@ -364,22 +376,26 @@ public class OneMoreWallpaperPickerActivity extends Activity {
             					mHandler.post(UPDATEPROGRESS);
         					}
 	        				for (int j=0;j<OMWPP.WPHEIGHT; j+=1) {
-	        					color=bmp.getPixel(i, j);
-	        					ditherfactor = (int)((Math.random()-0.5d)*ditherStrength);
+	        			    	final Random random = new Random();
+	        					color=pixels[count];
+	        					ditherfactor = random.nextInt(ditherStrength);
 	        					if (ditherfactor>0) {
 		        					r=Math.min(((color >> 16) & 0xFF)+ditherfactor,255);
 		        					g=Math.min(((color >> 8) & 0xFF)+ditherfactor,255);
 		        					b=Math.min((color & 0xFF)+ditherfactor,255);
-		        					bmp.setPixel(i, j, Color.rgb(r,g,b));
+		        					pixels[count]=Color.rgb(r,g,b);
 	        					} else if (ditherfactor<0) {
 		        					r=Math.max(((color >> 16) & 0xFF)+ditherfactor,0);
 		        					g=Math.max(((color >> 8) & 0xFF)+ditherfactor,0);
 		        					b=Math.max((color & 0xFF)+ditherfactor,0);
-		        					bmp.setPixel(i, j, Color.rgb(r,g,b));
+		        					pixels[count]=Color.rgb(r,g,b);
 	        					}
+	        					count++;
 	        				}
 	        			}
         			}
+        			bmp.setPixels(pixels, 0, OMWPP.WPWIDTH, 0, 0, OMWPP.WPWIDTH, OMWPP.WPHEIGHT);
+        			pixels=null;
 
 					PROGRESSVAL = (int)(95);
 					mHandler.post(UPDATEPROGRESS);
@@ -810,15 +826,18 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	public class WPPickerAdapter extends BaseAdapter {
 
     	public ArrayList<File> mFiles;
+    	public ArrayList<Bitmap> mThumbnails;
     	public HashMap<File, Integer> mNames;
 
         public WPPickerAdapter() {
         	mFiles = new ArrayList<File>();
+        	mThumbnails = new ArrayList<Bitmap>();
         	mNames = new HashMap<File, Integer>();
         }
         
         public int addItem(final File bitmapFile){
         	mNames.put(bitmapFile, mFiles.size());
+        	mThumbnails.add(OMWPP.PLACEHOLDERBMP);
         	mFiles.add(bitmapFile);
         	return mFiles.size();
         }
@@ -866,17 +885,24 @@ public class OneMoreWallpaperPickerActivity extends Activity {
         		OMWPP.THUMBNAILQUEUE.offer(f);
             	((ImageView)ll.findViewById(R.id.wppreview)).setImageResource(R.drawable.ic_launcher);
         	} else {
-            	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(BitmapFactory.decodeFile(OMWPP.THUMBNAILROOT+"/XFTN_"+mFiles.get(position).getName()));
+        		mThumbnails.set(position, BitmapFactory.decodeFile(OMWPP.THUMBNAILROOT+"/XFTN_"+mFiles.get(position).getName()));
+            	((ImageView)ll.findViewById(R.id.wppreview)).setImageBitmap(mThumbnails.get(position));
+        	}
+        	if (position>5 && mFiles.size()-position>5) {
+	        	int leftclear = position-5 >= 0 ? position-5 : 0;
+	        	if (mThumbnails.get(leftclear)!=OMWPP.PLACEHOLDERBMP) {
+	        		mThumbnails.get(leftclear).recycle();
+	            	mThumbnails.set(leftclear, OMWPP.PLACEHOLDERBMP);
+	        	}
+	        	int rightclear = position+5 < mFiles.size() ? position+5 : mFiles.size();
+	        	if (mThumbnails.get(rightclear)!=OMWPP.PLACEHOLDERBMP) {
+	        		mThumbnails.get(rightclear).recycle();
+	            	mThumbnails.set(rightclear, OMWPP.PLACEHOLDERBMP);
+	        	}
         	}
 
-        	ll.requestLayout();
         	notifyDataSetChanged(); 
         	
-//        	if (position-5>=0) 	
-//        		setBitmap(mFiles.get(position-5), null);
-//         	if (position+5<mFiles.size())    	
-//        		setBitmap(mFiles.get(position+5), null);
-
             return ll;
         }
 

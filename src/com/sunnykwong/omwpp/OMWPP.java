@@ -63,6 +63,7 @@ import java.security.MessageDigest;
 public class OMWPP extends Application {
 	
 	static public final boolean DEBUG=true;
+	static public Bitmap PLACEHOLDERBMP;
 	static public JSONObject CONFIGJSON;
 	static public File SDROOT,THUMBNAILROOT;
 	static public long LASTCONFIGREFRESH;
@@ -91,6 +92,13 @@ public class OMWPP extends Application {
 		super.onCreate();
 		CONTEXT = this.getApplicationContext();
 		AM = this.getAssets();
+
+		try {
+			PLACEHOLDERBMP = BitmapFactory.decodeStream(AM.open("transparent.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		WPM = WallpaperManager.getInstance(this);
 		PREFS = PreferenceManager.getDefaultSharedPreferences(OMWPP.CONTEXT);
 		
