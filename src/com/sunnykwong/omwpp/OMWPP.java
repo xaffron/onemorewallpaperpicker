@@ -73,7 +73,7 @@ public class OMWPP extends Application {
 	static public ArrayBlockingQueue<File> UNZIPQUEUE;
 	static public OneMoreWallpaperPickerActivity.GenerateThumbnailTask THUMBNAILTASK=null;
 	static public OneMoreWallpaperPickerActivity.PopulateGalleryTask PREVIEWTASK=null;
-	static public OneMoreWallpaperPickerActivity.DownloadDebsTask DOWNLOADTASK=null;
+	static public DownloadService.DownloadDebsTask DOWNLOADTASK=null;
 	static public Context CONTEXT;
 	static public AssetManager AM;
 	static public WallpaperManager WPM;

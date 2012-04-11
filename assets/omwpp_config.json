@@ -1,5 +1,8 @@
 {
     "lastupdateepoch": "1331308897000",
+    "localpaths":[
+    	"/sdcard/ubuntuwps/"
+    ]
     "mirrors": [
         "mirror.pnl.gov/ubuntu/",
         "mirror.anl.gov/pub/ubuntu/",
@@ -113,7 +116,7 @@
         },
         {
             "url": "/pool/universe/u/ubuntustudio-look/",
- 			"filename":"ubuntustudio-wallpapers_0.41_all.deb",
+ 			"filename":"ubuntustudio-wallpapers_0.42_all.deb",
             "downloaded": false,
             "size": 7215178,
             "md5sum": "ef0ac3233f6c396454a62a747502b295",
