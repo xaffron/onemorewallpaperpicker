@@ -2,23 +2,36 @@ package com.sunnykwong.omwpp;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
-import android.graphics.PixelFormat;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.AttributeSet;
-import android.view.View;
+import android.os.Environment;
+import android.util.Log;
+import android.view.Gravity;
 import android.view.ViewGroup;
-import android.view.ViewGroup.LayoutParams;
+import android.widget.CheckBox;
+import android.widget.LinearLayout.LayoutParams;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 public class OMWPPAddPathActivity extends Activity {
 	public ProgressBar pb;
@@ -35,44 +48,125 @@ public class OMWPPAddPathActivity extends Activity {
 		ll = (LinearLayout)findViewById(R.id.pathpicker);
 		
 		pb = new ProgressBar(this,null,android.R.attr.progressBarStyleLarge);
-		pb.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT));
-		
-		
+		LayoutParams lp = new LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+		lp.gravity=Gravity.CENTER;
+		lp.topMargin=50;
+		pb.setLayoutParams(lp);
 		ll.addView(pb);
-		
 		ll.invalidate();
 		
-		AsyncTask<String, Void, String> at = new AsyncTask<String, Void, String>() {
+		AsyncTask<String, String, String> at = new AsyncTask<String, String, String>() {
+			
+			ArrayList<File> wpDirsList;
+
+			FileFilter wpOnlyFilter = new FileFilter() {
+				@Override
+				public boolean accept(File pathname) {
+					if (!pathname.getName().endsWith(".png") && !pathname.getName().endsWith(".jpg")) return false;
+					BitmapFactory.decodeFile(pathname.getAbsolutePath(),OMWPP.BMPQUERYOPTIONS);
+        			float wpWidth = OMWPP.BMPQUERYOPTIONS.outWidth;
+        			float wpHeight = OMWPP.BMPQUERYOPTIONS.outHeight;
+        			if (wpWidth>=400 && wpHeight>=400) return true;
+        			else return false;
+				}
+			};
+			
+			FileFilter dirsOnlyFilter = new FileFilter() {
+				
+				@Override
+				public boolean accept(File pathname) {
+					if (pathname.isDirectory()) return true;
+					return false;
+				}
+			};
+			
 			@Override
 			protected String doInBackground(String... urls) {
+				
+				wpDirsList = new ArrayList<File>();
+				countFiles(Environment.getExternalStorageDirectory());
+				return "";
+			}
+			
+			public void countFiles(File fileList) {
+				File[] wpList = fileList.listFiles();
+				int filecount = 0;
+				if (wpList==null) return;
 
-				String response = "";
-				for (String url : urls) {
-					DefaultHttpClient client = new DefaultHttpClient();
-					HttpGet httpGet = new HttpGet(url);
-					try {
-						HttpResponse execute = client.execute(httpGet);
-						JSONObject tempObj = OMWPP.streamToJSONObject(execute.getEntity().getContent());
-						BufferedWriter out = new BufferedWriter(new FileWriter(new File(OMWPP.THUMBNAILROOT.getPath()+ "omwpp_config.json")),8192);
-						out.write(tempObj.toString(5));
-						out.close();
-						OMWPP.PREFS.edit().putLong("lastupdateepoch", System.currentTimeMillis()).commit();
-						OMWPP.LASTCONFIGREFRESH = System.currentTimeMillis();
-					} catch (Exception e) {
-						e.printStackTrace();
+				// Respect hidden and .nomedia folders
+				if (fileList.getName().startsWith(".")) return;
+				if (new File(fileList.getAbsolutePath()+"/.nomedia").exists()) return;
+
+				for (File file:wpList) {
+					if (wpOnlyFilter.accept(file)) {
+						System.out.println(file.getAbsolutePath() + " is a wallpaper.");
+						filecount++;
+					}
+					if (filecount>2) {
+						System.out.println(fileList.getAbsolutePath() + " added to wallpaper paths.");
+						wpDirsList.add(fileList);
+						break;
 					}
 				}
-				return response;
+
+				
+				File[] dirList = fileList.listFiles(dirsOnlyFilter);
+				if (dirList==null) return;
+				for (File dir: dirList)
+					countFiles(dir);
 			}
 			
 			@Override
 			protected void onPostExecute(String result) {
 				// TODO Auto-generated method stub
 				super.onPostExecute(result);
+				ll.removeView(pb);
+				for (File dir: wpDirsList) {
+					final CheckBox cb = new CheckBox(OMWPPAddPathActivity.this);
+					cb.setText(dir.getAbsolutePath());
+					cb.setTextSize(14);
+					cb.setPadding(70, 10, 10, 10);
+					cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+						
+						@Override
+						public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+							JSONArray jsonPaths;
+							File[] paths;
+							try {
+								jsonPaths = OMWPP.CONFIGJSON.getJSONArray("localpaths");
+							} catch (JSONException e) {
+								jsonPaths = new JSONArray();
+							}
+							if (jsonPaths.length()>0) {
+								paths = new File[jsonPaths.length()];
+								for (int i=0;i<jsonPaths.length();i++) {
+									paths[i] = new File(jsonPaths.optString(i,""));
+								}
+							}  else {
+								paths = new File[]{new File("")};
+							}
+							if (isChecked) {
+								for (File f:paths) {
+									if (f.getAbsolutePath().equals(cb.getText())) {
+										return;
+									}
+ 								}
+								jsonPaths.put(cb.getText());
+								OMWPP.commitJSONChanges();
+								try {
+									System.out.println(jsonPaths.toString(5));
+								} catch (JSONException e) {
+									e.printStackTrace();
+								}
+							}
+						}
+					});
+					ll.addView(cb);
+				}
 				ll.invalidate();
 			}
 		};
-		//at.execute("");
+		at.execute("");
 		
 	}
 }
