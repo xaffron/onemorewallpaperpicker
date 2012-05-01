@@ -250,15 +250,6 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 				setWallpaper((String)gallery.getSelectedItem());				
 			}
 		});
-        btnHelp = (Button)findViewById(R.id.btnhelp);
-        btnHelp.setOnClickListener(new View.OnClickListener() {
-			
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
-			}
-		}); 
         cb16Bit = (RadioGroup)findViewById(R.id.rgdither);
         dithernone = (RadioButton)findViewById(R.id.dithernone);
         ditherweak = (RadioButton)findViewById(R.id.ditherweak);
@@ -478,19 +469,33 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 									public void onClick(DialogInterface dialog, int which) {
 									}
 								}).show();
-		} else if (item.getItemId()==R.id.refreshthumbnails) {
+		} else if (item.getItemId()==R.id.menurefreshthumbnails) {
 			for (File f:OMWPP.THUMBNAILROOT.listFiles()) {
 				if (f.getName().endsWith("omwpp_config.json")) continue;
 				f.delete();
 			}
 		    if (adapter!=null) adapter.notifyDataSetChanged();
+		} else if (item.getItemId()==R.id.menuaddcustompaths) {
+			OneMoreWallpaperPickerActivity.this.startActivityForResult(
+					new Intent(OneMoreWallpaperPickerActivity.this,OMWPPAddPathActivity.class),0
+			);
 		} else {
 			Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
 		}
 		
 		return super.onMenuItemSelected(featureId, item);
 	}
-
+ 
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		// TODO Auto-generated method stub
+		super.onActivityResult(requestCode, resultCode, data);
+        OMWPP.PREVIEWTASK = new PopulateGalleryTask();
+        OMWPP.THUMBNAILTASK = new GenerateThumbnailTask();
+        OMWPP.PREVIEWTASK.execute();
+        OMWPP.THUMBNAILTASK.execute("","","");
+	}
+	
 	@Override
 	protected void onPause() {
 		// TODO Auto-generated method stub
@@ -513,10 +518,20 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 
 	public class PopulateGalleryTask extends AsyncTask<String, String, String> {
 		int count=0;
-		@Override
+		@Override 
 		protected String doInBackground(String... dummy) {
+			String[] sLocalPaths = OMWPP.JSONArrayToStringArray(OMWPP.CONFIGJSON.optJSONArray("localpaths"));
+			//List<File> filelist = Arrays.asList(OMWPP.SDROOT.listFiles());
+			ArrayList<File> filelist = new ArrayList<File>(); 
+			for (String path:sLocalPaths) {
+				for (File file:new File(path).listFiles()) {
+					if (file.isFile()) {
+						filelist.add(file);
+					}
+				}
+			}
 			//File[] files = OMWPP.SDROOT.listFiles();
-			List<File> filelist = Arrays.asList(OMWPP.SDROOT.listFiles()); 
+			//List<File> filelist = Arrays.asList(OMWPP.SDROOT.listFiles()); 
 			Collections.sort(filelist, new Comparator<File>() {
 				@Override
 				public int compare(File object1, File object2) {
@@ -527,7 +542,9 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					return -1;
 				}
 			});
-			File[] files = (File[])filelist.toArray();
+
+			File[] files = new File[filelist.size()];
+			filelist.toArray(files);
 	        for (File f : files) {
 				if ( isCancelled()) {
 					if (OMWPP.DEBUG) Log.i("OMWPPreview", "Task interrupted. Ending.");

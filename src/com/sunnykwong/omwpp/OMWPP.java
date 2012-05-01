@@ -37,6 +37,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.ByteArrayBuffer;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -162,12 +163,15 @@ public class OMWPP extends Application {
 			}
 		} catch (Exception e) {
 			try {
-		        if (OMWPP.DEBUG) Log.i("OMWPPApp","Loading fallback config file");
-				CONFIGJSON = streamToJSONObject(OMWPP.AM.open("omwpp_config.json"));
 		        if (OMWPP.DEBUG) Log.i("OMWPPApp","Copying default files to Wallpaper folder");
 				copyAssetToFile("omwpp_config.json", THUMBNAILROOT.getPath()+ "/omwpp_config.json");
+				CONFIGJSON = streamToJSONObject(new FileInputStream(new File(THUMBNAILROOT.getPath()+ "/omwpp_config.json")));
+				CONFIGJSON.putOpt("localpaths", new JSONArray("[\""+ SDROOT.toString() +"\"]"));
+				commitJSONChanges();
+
 				try { 
 					for (String sFile : OMWPP.AM.list("")) {
+						copyAssetToFile(sFile, SDROOT.getPath()+ "/" + sFile);
 					}
 				} catch (Exception ee) {
 					ee.printStackTrace();
@@ -406,10 +410,13 @@ public class OMWPP extends Application {
 		}
 	}
 
-	public static boolean matchMD5(final File f, final String targetSum) {
-		boolean result=false;
-		
+	public static String[] JSONArrayToStringArray(JSONArray ja) {
+		String[] result = new String[ja.length()];
+		for (int i = 0; i < result.length; i++) {
+			result[i]=ja.optString(i);
+		}
 		return result;
 	}
-
+	
+	
 }

@@ -121,44 +121,47 @@ public class OMWPPAddPathActivity extends Activity {
 				// TODO Auto-generated method stub
 				super.onPostExecute(result);
 				ll.removeView(pb);
+				JSONArray jsonExistingPaths;
+				try {
+					jsonExistingPaths = OMWPP.CONFIGJSON.getJSONArray("localpaths");
+				} catch (JSONException e) {
+					jsonExistingPaths = new JSONArray();
+				}
 				for (File dir: wpDirsList) {
+					final JSONArray jsonPaths = jsonExistingPaths;
 					final CheckBox cb = new CheckBox(OMWPPAddPathActivity.this);
 					cb.setText(dir.getAbsolutePath());
+					cb.setChecked(false);
+					for (int i=0;i<jsonPaths.length();i++) {
+						if (jsonPaths.optString(i,"").equals(dir.getAbsolutePath())) {
+							cb.setChecked(true);
+						}
+					}
 					cb.setTextSize(14);
 					cb.setPadding(70, 10, 10, 10);
 					cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-						
+						JSONArray jsonNewPaths= new JSONArray();
 						@Override
 						public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-							JSONArray jsonPaths;
-							File[] paths;
-							try {
-								jsonPaths = OMWPP.CONFIGJSON.getJSONArray("localpaths");
-							} catch (JSONException e) {
-								jsonPaths = new JSONArray();
-							}
 							if (jsonPaths.length()>0) {
-								paths = new File[jsonPaths.length()];
+								// First, we remove any existing trace of the entry
 								for (int i=0;i<jsonPaths.length();i++) {
-									paths[i] = new File(jsonPaths.optString(i,""));
+									if (cb.getText().equals(jsonPaths.optString(i,""))) {
+										// do nothing - we are removing the entry
+									} else {
+										jsonNewPaths.put(jsonPaths.optString(i,""));
+									} 
 								}
+								if (isChecked) jsonNewPaths.put(cb.getText());
 							}  else {
-								paths = new File[]{new File("")};
+								if (isChecked) jsonNewPaths.put(cb.getText());
 							}
-							if (isChecked) {
-								for (File f:paths) {
-									if (f.getAbsolutePath().equals(cb.getText())) {
-										return;
-									}
- 								}
-								jsonPaths.put(cb.getText());
-								OMWPP.commitJSONChanges();
-								try {
-									System.out.println(jsonPaths.toString(5));
-								} catch (JSONException e) {
-									e.printStackTrace();
-								}
+							try {
+								OMWPP.CONFIGJSON.put("localpaths", jsonNewPaths);
+							} catch (JSONException e) {
+								e.printStackTrace();
 							}
+						    OMWPP.commitJSONChanges();
 						}
 					});
 					ll.addView(cb);
