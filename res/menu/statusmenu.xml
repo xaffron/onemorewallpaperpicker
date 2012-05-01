@@ -19,11 +19,11 @@
         showAsAction="ifRoom" 
         android:id="@+id/menuaddcustompaths"
         android:icon="@android:drawable/ic_menu_edit"
-        android:title="Add Custom Paths">
+        android:title="Wallpaper Paths">
     </item>
     <item
         showAsAction="ifRoom" 
-        android:id="@+id/refreshthumbnails"
+        android:id="@+id/menurefreshthumbnails"
         android:icon="@android:drawable/ic_menu_view"
         android:title="Refresh Thumbnails">
     </item>
