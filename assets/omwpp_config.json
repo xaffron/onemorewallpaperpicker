@@ -1,8 +1,5 @@
 {
     "lastupdateepoch": "1331308897000",
-    "localpaths": [
-        "/sdcard/ubuntuwps/"
-    ],
     "mirrors": [
         "mirror.pnl.gov/ubuntu/",
         "mirror.anl.gov/pub/ubuntu/",
