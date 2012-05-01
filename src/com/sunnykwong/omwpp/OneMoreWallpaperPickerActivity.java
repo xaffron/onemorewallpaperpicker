@@ -1,43 +1,19 @@
 package com.sunnykwong.omwpp;
 
-import java.io.BufferedInputStream;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.PreparedStatement;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
-import java.util.logging.LogRecord;
-
-import javax.net.ssl.HandshakeCompletedListener;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.ByteArrayBuffer;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
@@ -46,31 +22,21 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.Bitmap.Config;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
-import android.graphics.Shader;
-import android.media.ThumbnailUtils;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.opengl.Visibility;
 import android.os.AsyncTask;
-import android.os.AsyncTask.Status;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -80,18 +46,14 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.Gallery;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.app.WallpaperManager;
-import android.app.WallpaperManager;
+
 import com.mobclix.android.sdk.MobclixMMABannerXLAdView;
 
 public class OneMoreWallpaperPickerActivity extends Activity {
@@ -142,7 +104,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 	    if (getResources().getDisplayMetrics().heightPixels < 600 && getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE) setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         
         if (savedInstanceState==null) { 
-	        long startMillis = System.currentTimeMillis();
+
 	        if (OMWPP.THUMBNAILQUEUE!=null)OMWPP.THUMBNAILQUEUE.clear();
 	        if (OMWPP.UNZIPQUEUE!=null)OMWPP.UNZIPQUEUE.clear();
 	        if (OMWPP.DOWNLOADQUEUE!=null)OMWPP.DOWNLOADQUEUE.clear();
@@ -196,7 +158,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 						return response;
 					}
 				};
-				at.execute(new String[]{"http://www.yahoo.com"});
+				//at.execute(new String[]{"http://www.yahoo.com"});
 			}
 
 	        if (!OMWPP.isSDPresent()) {
@@ -421,68 +383,81 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 		return true; 
 	}
 	
-	@Override 
+	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 		// TODO Auto-generated method stub
-		
-		if (item.getItemId()==R.id.menuforcedownload) {
-			AlertDialog ad = new AlertDialog.Builder(this)
-								.setCancelable(true)
-								.setTitle("WARNING: Large Download")
-								.setMessage("OMWPP is about to contact Ubuntu servers for its background files, which total up to 50-60MB in size.  It is highly recommended to proceed only when you are on WiFi.")
-								.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-									
-									@Override
-									public void onClick(DialogInterface dialog, int which) {
-										//Do nothing
-										}
-								})
-								.setPositiveButton("Ready!", new DialogInterface.OnClickListener() {
-									
-									@Override
-									public void onClick(DialogInterface dialog, int which) {
-										Intent it = new Intent(OMWPP.CONTEXT, DownloadService.class);
-										OneMoreWallpaperPickerActivity.this.startService(it);
-									}
-								})
-								.show();
-		} else if (item.getItemId()==R.id.menudownloadstatus) {
+
+		if (item.getItemId() == R.id.menuforcedownload) {
+			new AlertDialog.Builder(this)
+					.setCancelable(true)
+					.setTitle("WARNING: Large Download")
+					.setMessage(
+							"OMWPP is about to contact Ubuntu servers for its background files, which total up to 50-60MB in size.  It is highly recommended to proceed only when you are on WiFi.")
+					.setNegativeButton("Cancel",
+							new DialogInterface.OnClickListener() {
+
+								@Override
+								public void onClick(DialogInterface dialog,
+										int which) {
+									// Do nothing
+								}
+							})
+					.setPositiveButton("Ready!",
+							new DialogInterface.OnClickListener() {
+
+								@Override
+								public void onClick(DialogInterface dialog,
+										int which) {
+									Intent it = new Intent(OMWPP.CONTEXT,
+											DownloadService.class);
+									OneMoreWallpaperPickerActivity.this
+											.startService(it);
+								}
+							}).show();
+		} else if (item.getItemId() == R.id.menudownloadstatus) {
 			StringBuilder sb = new StringBuilder(1000);
 			try {
-				JSONArray archives = OMWPP.CONFIGJSON.getJSONArray("archives"); 
+				JSONArray archives = OMWPP.CONFIGJSON.getJSONArray("archives");
 				for (int i = 0; i < archives.length(); i++) {
 					JSONObject archive = archives.getJSONObject(i);
 					sb.append(archive.getString("comment"))
-						.append("(" + archive.getLong("size") + " bytes) is ")
-						.append(archive.getBoolean("downloaded")?"downloaded.":"not downloaded.")
-						.append("\n");
+							.append("(" + archive.getLong("size")
+									+ " bytes) is ")
+							.append(archive.getBoolean("downloaded") ? "downloaded."
+									: "not downloaded.").append("\n");
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			AlertDialog ad = new AlertDialog.Builder(this)
-								.setCancelable(true)
-								.setTitle("Download Status")
-								.setMessage(sb.toString())
-								.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-									@Override
-									public void onClick(DialogInterface dialog, int which) {
-									}
-								}).show();
-		} else if (item.getItemId()==R.id.menurefreshthumbnails) {
-			for (File f:OMWPP.THUMBNAILROOT.listFiles()) {
-				if (f.getName().endsWith("omwpp_config.json")) continue;
+			new AlertDialog.Builder(this)
+					.setCancelable(true)
+					.setTitle("Download Status")
+					.setMessage(sb.toString())
+					.setPositiveButton("OK",
+							new DialogInterface.OnClickListener() {
+								@Override
+								public void onClick(DialogInterface dialog,
+										int which) {
+								}
+							}).show();
+		} else if (item.getItemId() == R.id.menurefreshthumbnails) {
+			for (File f : OMWPP.THUMBNAILROOT.listFiles()) {
+				if (f.getName().endsWith("omwpp_config.json"))
+					continue;
 				f.delete();
 			}
-		    if (adapter!=null) adapter.notifyDataSetChanged();
-		} else if (item.getItemId()==R.id.menuaddcustompaths) {
+			if (adapter != null)
+				adapter.notifyDataSetChanged();
+		} else if (item.getItemId() == R.id.menuaddcustompaths) {
 			OneMoreWallpaperPickerActivity.this.startActivityForResult(
-					new Intent(OneMoreWallpaperPickerActivity.this,OMWPPAddPathActivity.class),0
-			);
+					new Intent(OneMoreWallpaperPickerActivity.this,
+							OMWPPAddPathActivity.class), 0);
 		} else {
-			Toast.makeText(OMWPP.CONTEXT, "Sorry, no help.\nThis is alpha, remember?", Toast.LENGTH_SHORT).show();
+			Toast.makeText(OMWPP.CONTEXT,
+					"Sorry, no help.\nThis is alpha, remember?",
+					Toast.LENGTH_SHORT).show();
 		}
-		
+
 		return super.onMenuItemSelected(featureId, item);
 	}
  
@@ -550,7 +525,7 @@ public class OneMoreWallpaperPickerActivity extends Activity {
 					if (OMWPP.DEBUG) Log.i("OMWPPreview", "Task interrupted. Ending.");
 					return "";
 				}
-	        	final Bitmap bmp, thumbnail;
+
 	        	// Spot check the file to see if it is a supported bitmap.
 	        	// If it isn't, don't bother - move on.
 	        	if (!f.getName().endsWith(".png") && !f.getName().endsWith(".jpg")) continue;

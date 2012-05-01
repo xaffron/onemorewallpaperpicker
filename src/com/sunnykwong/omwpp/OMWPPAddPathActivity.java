@@ -1,37 +1,23 @@
 package com.sunnykwong.omwpp;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.app.Activity;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.Gravity;
-import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.LinearLayout.LayoutParams;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.LinearLayout.LayoutParams;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 
 public class OMWPPAddPathActivity extends Activity {
 	public ProgressBar pb;
