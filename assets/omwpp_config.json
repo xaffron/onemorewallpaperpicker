@@ -65,11 +65,11 @@
         },
         {
             "url": "/pool/universe/g/gnome-backgrounds/",
-            "filename": "gnome-backgrounds_3.2.0-0ubuntu1_all.deb",
+            "filename": "gnome-backgrounds_3.4.1-1_all.deb",
             "downloaded": false,
-            "size": 8849184,
-            "md5sum": "7206b74381b2f4f643bb6285d0c83a5f",
-            "comment": "GNOME(O)"
+            "size": 8877772,
+            "md5sum": "c2f17a6ff2fef6b141452ab88417cfdf",
+            "comment": "GNOME(P)"
         },
         {
             "url": "/pool/main/u/ubuntu-wallpapers/",
@@ -104,6 +104,14 @@
             "comment": "Oneiric"
         },
         {
+            "url": "/pool/main/u/ubuntu-wallpapers/",
+            "filename": "ubuntu-wallpapers-precise_0.34.1_all.deb",
+            "downloaded": false,
+            "size": 2503790,
+            "md5sum": "710670c11e8cdd0b2fcdb0b5e5ad2803",
+            "comment": "Precise"
+        },
+        {
             "url": "/pool/universe/u/ubuntu-wallpapers-extra/",
             "filename": "ubuntu-wallpapers-extra_0.1_all.deb",
             "downloaded": false,
@@ -115,16 +123,16 @@
             "url": "/pool/universe/u/ubuntustudio-look/",
             "filename": "ubuntustudio-wallpapers_0.42_all.deb",
             "downloaded": false,
-            "size": 7215178,
-            "md5sum": "ef0ac3233f6c396454a62a747502b295",
+            "size": 9293474,
+            "md5sum": "defb4cfade9505bb7844a0bd0685b903",
             "comment": "U.Studio"
         },
         {
             "url": "/pool/universe/e/edubuntu-artwork/",
-            "filename": "edubuntu-wallpapers_11.09.1_all.deb",
+            "filename": "edubuntu-wallpapers_12.04.1_all.deb",
             "downloaded": false,
-            "size": 9393014,
-            "md5sum": "f0e1255b8bf7d55f41af41376f12ddac",
+            "size": 9392930,
+            "md5sum": "b535e0b47c91ccbaac20479839d21003",
             "comment": "Edubuntu"
         }
     ]
